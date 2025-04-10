@@ -45,7 +45,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
     <div className="group h-full">
       <div className="relative bg-white rounded-lg shadow-sm overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md">
         {/* Product image container with overlay */}
-        <Link to={`/products/${product._id}`} className="block relative">
+        <div className="relative">
           <div className="relative h-56 overflow-hidden bg-gray-100">
             {/* Product image with hover effect */}
             <img
@@ -101,7 +101,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
               {discount}% Off
             </span>
           )}
-        </Link>
+          
+          {/* Make the entire image area clickable using an absolute positioned link */}
+          <Link 
+            to={`/products/${product._id}`} 
+            className="absolute inset-0"
+            aria-label={`View ${product.name} details`}
+          >
+            <span className="sr-only">View product details</span>
+          </Link>
+        </div>
 
         {/* Product details */}
         <div className="p-4 flex flex-col flex-grow">
