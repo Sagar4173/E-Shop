@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const mongoose = require("mongoose");
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -161,6 +162,221 @@ exports.getOrders = async (req, res) => {
       .populate("user", "id name")
       .sort({ createdAt: -1 });
     res.json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Create return request for an order
+// @route   POST /api/orders/:id/return
+// @access  Private
+exports.createReturnRequest = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { returnItems, refundMethod, additionalNotes, isInternational } =
+      req.body;
+
+    if (!returnItems || returnItems.length === 0) {
+      return res.status(400).json({ message: "No items to return" });
+    }
+
+    // Validate order ID
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: "Invalid order ID format" });
+    }
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Check if the order belongs to the user or if the user is an admin
+    if (
+      order.user.toString() !== req.user._id.toString() &&
+      !req.user.isAdmin
+    ) {
+      return res
+        .status(401)
+        .json({ message: "Not authorized to create return for this order" });
+    }
+
+    // Check if order is eligible for return
+    if (order.status !== "delivered") {
+      return res
+        .status(400)
+        .json({ message: "Only delivered orders can be returned" });
+    }
+
+    // Check if 30 days have passed since delivery
+    const deliveryDate = new Date(order.deliveredAt);
+    const currentDate = new Date();
+    const timeDiff = currentDate.getTime() - deliveryDate.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysDiff > 30) {
+      return res
+        .status(400)
+        .json({ message: "Return window has expired (30 days)" });
+    }
+
+    // Validate and process return items
+    const processedReturnItems = [];
+
+    // Validate refund method
+    const validRefundMethods = ["original", "store_credit"];
+    const chosenRefundMethod =
+      refundMethod && validRefundMethods.includes(refundMethod)
+        ? refundMethod
+        : "original";
+
+    for (const item of returnItems) {
+      // Find the order item
+      const orderItemIndex = order.orderItems.findIndex(
+        (oi) => oi._id.toString() === item.orderItemId
+      );
+
+      if (orderItemIndex === -1) {
+        return res.status(400).json({
+          message: `Item with ID ${item.orderItemId} not found in order`,
+        });
+      }
+
+      const orderItem = order.orderItems[orderItemIndex];
+
+      // Check if return quantity is valid
+      if (item.quantity <= 0 || item.quantity > orderItem.quantity) {
+        return res.status(400).json({
+          message: `Invalid return quantity for item ${orderItem.name}`,
+        });
+      }
+
+      // Create return item with additional fields
+      processedReturnItems.push({
+        orderItem: orderItem._id,
+        quantity: item.quantity,
+        reason: item.reason,
+        otherReason: item.otherReason || "",
+        status: "pending",
+        refundMethod: chosenRefundMethod,
+        isInternational: isInternational || false,
+        additionalNotes: additionalNotes || "",
+      });
+    }
+
+    // Add return items to order
+    order.returns = [...order.returns, ...processedReturnItems];
+    order.hasReturn = true;
+
+    const updatedOrder = await order.save();
+
+    res.status(201).json({
+      message: "Return request created successfully",
+      returnItems: updatedOrder.returns,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Update return request status
+// @route   PUT /api/orders/:id/return/:returnId
+// @access  Private/Admin
+exports.updateReturnStatus = async (req, res) => {
+  try {
+    const { id, returnId } = req.params;
+    const { status, comments } = req.body;
+
+    if (!["pending", "approved", "rejected", "completed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Find the return item
+    const returnItem = order.returns.id(returnId);
+
+    if (!returnItem) {
+      return res.status(404).json({ message: "Return request not found" });
+    }
+
+    // Update the return status
+    returnItem.status = status;
+    if (comments) {
+      returnItem.comments = comments;
+    }
+
+    // If status is approved, we might need to update inventory
+    if (status === "approved") {
+      // Process inventory updates if needed
+    }
+
+    // If all returns are completed or rejected, update hasReturn flag
+    if (status === "completed" || status === "rejected") {
+      const pendingReturns = order.returns.filter(
+        (r) => r.status !== "completed" && r.status !== "rejected"
+      );
+
+      if (pendingReturns.length === 0) {
+        order.hasReturn = false;
+      }
+    }
+
+    await order.save();
+
+    res.json({
+      message: "Return status updated successfully",
+      returnItem,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Get all returns for admin
+// @route   GET /api/orders/returns
+// @access  Private/Admin
+exports.getAllReturns = async (req, res) => {
+  try {
+    const orders = await Order.find({ hasReturn: true })
+      .populate("user", "name email")
+      .sort({ updatedAt: -1 });
+
+    const returns = [];
+
+    orders.forEach((order) => {
+      order.returns.forEach((returnItem) => {
+        // Find the original order item
+        const orderItem = order.orderItems.find(
+          (item) => item._id.toString() === returnItem.orderItem.toString()
+        );
+
+        if (orderItem) {
+          returns.push({
+            returnId: returnItem._id,
+            orderId: order._id,
+            orderDate: order.createdAt,
+            user: order.user,
+            productName: orderItem.name,
+            quantity: returnItem.quantity,
+            reason: returnItem.reason,
+            otherReason: returnItem.otherReason,
+            status: returnItem.status,
+            createdAt: returnItem.createdAt,
+            updatedAt: returnItem.updatedAt,
+          });
+        }
+      });
+    });
+
+    res.json(returns);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

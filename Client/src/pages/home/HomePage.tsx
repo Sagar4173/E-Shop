@@ -532,45 +532,6 @@ const HomePage = () => {
           ))}
         </div>
       </section>
-
-      {/* Newsletter Subscription */}
-      <section className="mb-16 bg-gray-50 py-12 px-4 rounded-lg">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Subscribe to Our Newsletter
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Stay updated with our latest products and exclusive offers
-          </p>
-
-          {subscribed ? (
-            <div className="bg-green-100 text-green-800 p-4 rounded-md">
-              Thank you for subscribing! You'll receive our next newsletter
-              soon.
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubscribe}
-              className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-            >
-              <input
-                type="email"
-                placeholder="Your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="flex-1 px-4 py-3 rounded-md border focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
-          )}
-        </div>
-      </section>
     </Layout>
   );
 };

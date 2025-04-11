@@ -24,6 +24,22 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    enable2FA: {
+      type: Boolean,
+      default: false,
+    },
+    notificationPreferences: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
+    },
+    lastLogin: {
+      type: Date,
+    },
     address: {
       street: { type: String },
       city: { type: String },

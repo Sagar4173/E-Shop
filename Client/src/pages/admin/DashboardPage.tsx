@@ -43,6 +43,8 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStat[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [dataLastUpdated, setDataLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     // Check if user is logged in and is an admin
@@ -62,22 +64,28 @@ const DashboardPage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        // Get orders data
-        const ordersData = await getAllOrders();
+        // Get orders data with Promise.all for parallel API calls
+        const [ordersData, productsData] = await Promise.all([
+          getAllOrders(),
+          getProducts(),
+        ]);
 
-        // Get products data
-        const productsData = await getProducts();
+        // Process order data for analytics
+        const completedOrders = ordersData.filter(
+          (order: any) => order.isPaid && !order.isRefunded
+        );
 
         // Calculate dashboard stats from real data
-        const totalSales = ordersData
+        const totalSales = completedOrders
           .reduce((sum: number, order: any) => sum + order.totalAmount, 0)
           .toFixed(2);
 
         const orderCount = ordersData.length;
         const productCount = productsData.length;
 
-        // Calculate unique customers (this is an estimate since we need customer data)
+        // Calculate unique customers
         const customerIds = new Set(
           ordersData.map((order: any) =>
             order.user && typeof order.user === "object"
@@ -87,11 +95,30 @@ const DashboardPage = () => {
         );
         const customerCount = customerIds.size;
 
+        // Calculate additional metrics
+        const paidOrders = ordersData.filter((order: any) => order.isPaid);
+        const paidOrdersCount = paidOrders.length;
+        const conversionRate =
+          orderCount > 0
+            ? ((paidOrdersCount / orderCount) * 100).toFixed(1)
+            : "0";
+
+        // Calculate average order value
+        const averageOrderValue =
+          paidOrders.length > 0
+            ? (
+                paidOrders.reduce(
+                  (sum: number, order: any) => sum + order.totalAmount,
+                  0
+                ) / paidOrders.length
+              ).toFixed(2)
+            : "0";
+
         // Set dashboard stats
         setStats([
           {
             title: "Total Sales",
-            value: `$${totalSales}`,
+            value: `₹${totalSales}`,
             icon: <FaChartLine size={20} />,
             color: "bg-blue-500",
           },
@@ -113,6 +140,18 @@ const DashboardPage = () => {
             icon: <FaUsers size={20} />,
             color: "bg-orange-500",
           },
+          {
+            title: "Conversion Rate",
+            value: `${conversionRate}%`,
+            icon: <FaTag size={20} />,
+            color: "bg-pink-500",
+          },
+          {
+            title: "Avg Order Value",
+            value: `₹${averageOrderValue}`,
+            icon: <FaChartLine size={20} />,
+            color: "bg-indigo-500",
+          },
         ]);
 
         // Get recent orders (last 5)
@@ -122,14 +161,23 @@ const DashboardPage = () => {
         );
 
         setRecentOrders(sortedOrders.slice(0, 5));
+        setDataLastUpdated(new Date());
         setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
+        setError(
+          error?.response?.data?.message || "Failed to load dashboard data"
+        );
         setLoading(false);
       }
     };
 
     fetchDashboardData();
+
+    // Set up auto-refresh every 5 minutes
+    const refreshInterval = setInterval(fetchDashboardData, 5 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -163,24 +211,68 @@ const DashboardPage = () => {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
           <p>Loading dashboard data...</p>
         </div>
+      ) : error ? (
+        <div className="bg-red-100 text-red-800 p-4 rounded-lg shadow mb-6">
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 bg-red-600 text-white px-4 py-1 rounded text-sm hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
       ) : (
         <>
+          {/* Last updated indicator */}
+          {dataLastUpdated && (
+            <div className="flex justify-end mb-4 text-sm text-gray-500">
+              <div className="flex items-center">
+                <span className="mr-2">Last updated:</span>
+                <time dateTime={dataLastUpdated.toISOString()}>
+                  {dataLastUpdated.toLocaleTimeString()}
+                </time>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="ml-3 text-blue-600 hover:text-blue-800 flex items-center"
+                  title="Refresh data"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-sm overflow-hidden"
+                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
               >
                 <div className="p-6 flex items-center">
                   <div
-                    className={`rounded-full p-3 mr-4 ${stat.color} text-white`}
+                    className={`rounded-full p-4 mr-4 ${stat.color} text-white`}
                   >
                     {stat.icon}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">{stat.title}</p>
-                    <h3 className="text-xl font-bold">{stat.value}</h3>
+                    <p className="text-sm text-gray-500 font-medium">
+                      {stat.title}
+                    </p>
+                    <h3 className="text-2xl font-bold">{stat.value}</h3>
                   </div>
                 </div>
               </div>
@@ -273,7 +365,7 @@ const DashboardPage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            ${order.totalAmount.toFixed(2)}
+                            ₹{order.totalAmount.toFixed(2)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

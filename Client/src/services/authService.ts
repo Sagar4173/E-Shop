@@ -16,6 +16,22 @@ interface User {
   name: string;
   email: string;
   isAdmin: boolean;
+  createdAt?: string;
+  lastLogin?: string;
+  enable2FA?: boolean;
+  phoneNumber?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  notificationPreferences?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
 }
 
 // Register a new user
@@ -24,7 +40,7 @@ export const register = async (userData: RegisterData) => {
     const response = await api.post("/users/register", userData);
     if (response.data.token) {
       localStorage.setItem("token", response.data.token);
-      // Store user data directly from response - API returns user data at root level
+      // Store complete user data
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -32,6 +48,16 @@ export const register = async (userData: RegisterData) => {
           name: response.data.name,
           email: response.data.email,
           isAdmin: response.data.isAdmin,
+          createdAt: response.data.createdAt,
+          lastLogin: response.data.lastLogin,
+          phoneNumber: response.data.phoneNumber || "",
+          address: response.data.address || {},
+          enable2FA: response.data.enable2FA || false,
+          notificationPreferences: response.data.notificationPreferences || {
+            email: true,
+            push: false,
+            sms: false,
+          },
         })
       );
     }
@@ -47,7 +73,7 @@ export const login = async (credentials: LoginData) => {
     const response = await api.post("/users/login", credentials);
     if (response.data.token) {
       localStorage.setItem("token", response.data.token);
-      // Store user data directly from response - API returns user data at root level
+      // Store complete user data
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -55,11 +81,20 @@ export const login = async (credentials: LoginData) => {
           name: response.data.name,
           email: response.data.email,
           isAdmin: response.data.isAdmin,
+          createdAt: response.data.createdAt,
+          lastLogin: response.data.lastLogin,
+          phoneNumber: response.data.phoneNumber || "",
+          address: response.data.address || {},
+          enable2FA: response.data.enable2FA || false,
+          notificationPreferences: response.data.notificationPreferences || {
+            email: true,
+            push: false,
+            sms: false,
+          },
         })
       );
 
       // Dispatch storage event to notify other components about the login
-      // This will trigger the cart context to update with the user's cart
       window.dispatchEvent(new Event("storage"));
     }
     return response.data;
@@ -131,12 +166,13 @@ export const updateUserProfile = async (userData: Partial<User>) => {
   try {
     const response = await api.put("/users/profile", userData);
 
-    // Update local storage with new user data
-    if (response.data.user) {
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-    }
+    // Handle the response structure correctly
+    const updatedUser = response.data.user || response.data;
 
-    return response.data;
+    // Update localStorage with complete user data
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    return updatedUser;
   } catch (error) {
     throw error;
   }

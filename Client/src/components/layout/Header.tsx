@@ -57,7 +57,7 @@ const Header = () => {
           : "bg-white py-4"
       }`}
     >
-      <div className="container mx-auto px-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-gray-900">
           <span className="text-indigo-600">E</span>-Shop

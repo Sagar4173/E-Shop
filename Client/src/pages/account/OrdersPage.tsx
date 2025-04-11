@@ -7,6 +7,10 @@ import {
   FaSignOutAlt,
   FaEye,
   FaDownload,
+  FaExchangeAlt,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import {
@@ -30,6 +34,14 @@ interface Order {
   totalAmount: number;
   status: string;
   createdAt: string;
+  deliveredAt?: string;
+  hasReturn?: boolean;
+  returns?: Array<{
+    _id: string;
+    status: "pending" | "approved" | "rejected" | "completed";
+    reason: string;
+    quantity: number;
+  }>;
 }
 
 const OrdersPage = () => {
@@ -49,7 +61,7 @@ const OrdersPage = () => {
     const userData = getCurrentUser();
     if (userData) {
       setUser({
-        _id: userData._id, // Changed from 'id' to '_id' to match the User interface
+        _id: userData._id,
         name: userData.name,
         email: userData.email,
         isAdmin: userData.isAdmin,
@@ -94,6 +106,38 @@ const OrdersPage = () => {
     }
   };
 
+  // Get return status badge class
+  const getReturnStatusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Get return status icon
+  const getReturnStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "approved":
+        return <FaCheckCircle className="mr-1" />;
+      case "pending":
+        return <FaClock className="mr-1" />;
+      case "rejected":
+        return <FaTimesCircle className="mr-1" />;
+      case "completed":
+        return <FaCheckCircle className="mr-1" />;
+      default:
+        return null;
+    }
+  };
+
   // Format date to display
   const formatDate = (dateString: string) => {
     try {
@@ -107,6 +151,32 @@ const OrdersPage = () => {
   // Calculate total items in an order
   const getTotalItems = (order: Order) => {
     return order.orderItems.reduce((acc, item) => acc + item.quantity, 0);
+  };
+
+  // Check if an order is eligible for return
+  const isEligibleForReturn = (order: Order) => {
+    if (order.status !== "delivered" || !order.deliveredAt) {
+      return false;
+    }
+
+    const deliveryDate = new Date(order.deliveredAt);
+    const currentDate = new Date();
+    const daysDiff = Math.floor(
+      (currentDate.getTime() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    return daysDiff <= 30;
+  };
+
+  // Get latest return status
+  const getLatestReturnStatus = (order: Order) => {
+    if (!order.returns || order.returns.length === 0) {
+      return null;
+    }
+
+    // Find the most recent return by sorting (if createdAt is available)
+    // For simplicity, we'll just take the first one for now
+    return order.returns[0];
   };
 
   return (
@@ -217,50 +287,84 @@ const OrdersPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {orders.map((order) => (
-                        <tr key={order._id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {order._id.substring(0, 8).toUpperCase()}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {getTotalItems(order)}{" "}
-                              {getTotalItems(order) === 1 ? "item" : "items"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatDate(order.createdAt)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(
-                                order.status
-                              )}`}
-                            >
-                              {order.status.charAt(0).toUpperCase() +
-                                order.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${order.totalAmount.toFixed(2)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <Link
-                              to={`/account/orders/${order._id}`}
-                              className="text-blue-600 hover:text-blue-900 mr-4"
-                            >
-                              <FaEye className="inline mr-1" size={14} />
-                              View
-                            </Link>
-                            <button className="text-blue-600 hover:text-blue-900">
-                              <FaDownload className="inline mr-1" size={14} />
-                              Invoice
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {orders.map((order) => {
+                        const returnStatus = getLatestReturnStatus(order);
+                        const canReturn =
+                          isEligibleForReturn(order) && !order.hasReturn;
+
+                        return (
+                          <tr key={order._id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {order._id.substring(0, 8).toUpperCase()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {getTotalItems(order)}{" "}
+                                {getTotalItems(order) === 1 ? "item" : "items"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {formatDate(order.createdAt)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(
+                                  order.status
+                                )}`}
+                              >
+                                {order.status.charAt(0).toUpperCase() +
+                                  order.status.slice(1)}
+                              </span>
+
+                              {/* Return status badge if a return exists */}
+                              {returnStatus && (
+                                <div className="mt-1">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getReturnStatusClass(
+                                      returnStatus.status
+                                    )}`}
+                                  >
+                                    {getReturnStatusIcon(returnStatus.status)}
+                                    Return {returnStatus.status}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              ${order.totalAmount.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <Link
+                                to={`/account/orders/${order._id}`}
+                                className="text-blue-600 hover:text-blue-900 mr-4"
+                              >
+                                <FaEye className="inline mr-1" size={14} />
+                                View
+                              </Link>
+
+                              {canReturn && (
+                                <Link
+                                  to={`/account/orders/${order._id}/return`}
+                                  className="text-blue-600 hover:text-blue-900 mr-4"
+                                >
+                                  <FaExchangeAlt
+                                    className="inline mr-1"
+                                    size={14}
+                                  />
+                                  Return
+                                </Link>
+                              )}
+
+                              <button className="text-blue-600 hover:text-blue-900">
+                                <FaDownload className="inline mr-1" size={14} />
+                                Invoice
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

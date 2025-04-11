@@ -19,6 +19,25 @@ interface CreateOrderData {
   totalAmount: number;
 }
 
+// Interface for return request items
+interface ReturnItem {
+  orderItemId: string;
+  quantity: number;
+  reason: string;
+  otherReason?: string;
+}
+
+// Refund method types
+type RefundMethod = "original" | "store_credit";
+
+// Interface for return request data
+interface ReturnRequestData {
+  returnItems: ReturnItem[];
+  refundMethod: RefundMethod;
+  additionalNotes?: string;
+  isInternational?: boolean;
+}
+
 // Create a new order
 export const createOrder = async (orderData: CreateOrderData) => {
   try {
@@ -83,6 +102,78 @@ export const updateOrderStatus = async (id: string, status: string) => {
 export const updateOrderToDelivered = async (id: string) => {
   try {
     const response = await api.put(`/orders/${id}/deliver`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Create a return request for an order
+export const createReturnRequest = async (
+  orderId: string,
+  returnData: ReturnRequestData
+) => {
+  try {
+    const response = await api.post(`/orders/${orderId}/return`, returnData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Upload photos for a return request
+export const uploadReturnPhotos = async (
+  orderId: string,
+  returnItemId: string,
+  photoFiles: File[]
+) => {
+  try {
+    const formData = new FormData();
+
+    // Add each photo to the form data
+    photoFiles.forEach((file) => {
+      formData.append("photos", file);
+    });
+
+    // Use api with different content type (multipart/form-data)
+    const response = await api.post(
+      `/uploads/returns/${orderId}/${returnItemId}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Admin: Update a return request status
+export const updateReturnStatus = async (
+  orderId: string,
+  returnId: string,
+  status: string,
+  comments?: string
+) => {
+  try {
+    const response = await api.put(`/orders/${orderId}/return/${returnId}`, {
+      status,
+      comments,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Admin: Get all return requests
+export const getAllReturns = async () => {
+  try {
+    const response = await api.get("/orders/returns");
     return response.data;
   } catch (error) {
     throw error;

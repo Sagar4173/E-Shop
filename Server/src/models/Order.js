@@ -1,5 +1,63 @@
 const mongoose = require("mongoose");
 
+const returnItemSchema = new mongoose.Schema(
+  {
+    orderItem: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "OrderItem",
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    reason: {
+      type: String,
+      required: true,
+      enum: [
+        "damaged",
+        "defective",
+        "wrong_item",
+        "not_as_described",
+        "no_longer_needed",
+        "better_price_found",
+        "accidental_order",
+        "other",
+      ],
+    },
+    otherReason: {
+      type: String,
+    },
+    status: {
+      type: String,
+      required: true,
+      enum: ["pending", "approved", "rejected", "completed"],
+      default: "pending",
+    },
+    comments: {
+      type: String,
+    },
+    refundMethod: {
+      type: String,
+      required: true,
+      enum: ["original", "store_credit"],
+      default: "original",
+    },
+    isInternational: {
+      type: Boolean,
+      default: false,
+    },
+    additionalNotes: {
+      type: String,
+    },
+    photosUploaded: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { timestamps: true }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     user: {
@@ -69,11 +127,16 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "processing", "shipped", "delivered"],
+      enum: ["pending", "processing", "shipped", "delivered", "returned"],
       default: "pending",
     },
     deliveredAt: {
       type: Date,
+    },
+    returns: [returnItemSchema],
+    hasReturn: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

@@ -1,16 +1,35 @@
 import { CartItem } from "../../types";
+import {
+  FaCcVisa,
+  FaCcMastercard,
+  FaCcPaypal,
+  FaCcAmex,
+  FaLock,
+  FaExchangeAlt,
+  FaRegClock,
+} from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 interface OrderSummaryProps {
   cartItems: CartItem[];
   total: number;
   loading?: boolean;
+  orderPlaced?: boolean;
+  orderId?: string;
 }
 
 const OrderSummary = ({
   cartItems,
   total,
   loading = false,
+  orderPlaced = false,
+  orderId = "",
 }: OrderSummaryProps) => {
+  // Apply the same free shipping logic as in CartSummary.tsx
+  const shipping = total >= 50 ? 0 : total > 0 ? 10 : 0;
+  const tax = total * 0.18; // 18% tax on checkout
+  const finalTotal = total + shipping + tax;
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -43,56 +62,85 @@ const OrderSummary = ({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Shipping:</span>
-          <span className="text-gray-800">Free</span>
+          <span className="text-gray-800">
+            {shipping > 0 ? `₹${shipping.toFixed(2)}` : "Free"}
+          </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Tax:</span>
-          <span className="text-gray-800">₹{(total * 0.18).toFixed(2)}</span>
+          <span className="text-gray-600">GST (18%):</span>
+          <span className="text-gray-800">₹{tax.toFixed(2)}</span>
         </div>
         <div className="flex justify-between font-semibold mt-2 pt-2 border-t border-gray-200">
           <span>Total:</span>
-          <span>₹{(total + total * 0.18).toFixed(2)}</span>
+          <span>₹{finalTotal.toFixed(2)}</span>
         </div>
       </div>
 
       {/* Promo code input */}
-      <div className="mt-6">
-        <label
-          htmlFor="promo"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Promo code
-        </label>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            id="promo"
-            className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter code"
-          />
-          <button
-            type="button"
-            className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      {!orderPlaced && (
+        <div className="mt-6">
+          <label
+            htmlFor="promo"
+            className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Apply
-          </button>
+            Promo code
+          </label>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              id="promo"
+              className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter code"
+            />
+            <button
+              type="button"
+              className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Apply
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Return Request Section - Only shown after order is placed */}
+      {orderPlaced && orderId && (
+        <div className="mt-6 border-t border-gray-200 pt-4">
+          <div className="flex items-center mb-3">
+            <FaExchangeAlt className="h-5 w-5 text-blue-600 mr-2" />
+            <h3 className="text-sm font-medium">Return Policy</h3>
+          </div>
+          <p className="text-xs text-gray-600 mb-3">
+            Not satisfied? You have 30 days from delivery date to return most
+            items in their original condition.
+          </p>
+          <div className="flex items-center text-xs text-gray-600 mb-4">
+            <FaRegClock className="h-3 w-3 mr-1" />
+            <span>Return window closes in 30 days</span>
+          </div>
+          <Link
+            to={`/account/orders/${orderId}/return`}
+            className="block w-full bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 text-center py-2 px-4 rounded-md text-sm font-medium transition-colors"
+          >
+            Request Return
+          </Link>
+          <Link
+            to="/returns"
+            className="block w-full text-center mt-2 text-xs text-blue-600 hover:underline"
+          >
+            View Return Policy
+          </Link>
+        </div>
+      )}
 
       {/* Payment methods */}
       <div className="mt-6">
         <h3 className="text-sm font-medium mb-2">We Accept</h3>
-        <ul className="flex space-x-2">
-          {["visa", "mastercard", "amex", "paypal"].map((method, index) => (
-            <li key={`payment-${method}-${index}`} className="flex-shrink-0">
-              <img
-                src={`/images/payment/${method}.svg`}
-                alt={method}
-                className="h-8"
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="flex space-x-3">
+          <FaCcVisa className="h-7 w-7 text-blue-500" />
+          <FaCcMastercard className="h-7 w-7 text-red-500" />
+          <FaCcPaypal className="h-7 w-7 text-blue-700" />
+          <FaCcAmex className="h-7 w-7 text-blue-400" />
+        </div>
       </div>
 
       {/* Loading state */}
@@ -109,55 +157,7 @@ const OrderSummary = ({
           Your payment is secured with industry-standard encryption
         </p>
         <div className="flex justify-center mt-2 space-x-2">
-          <svg
-            className="h-5 w-8"
-            viewBox="0 0 32 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect width="32" height="20" rx="2" fill="#E5E7EB" />
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M16 14C18.2091 14 20 12.2091 20 10C20 7.79086 18.2091 6 16 6C13.7909 6 12 7.79086 12 10C12 12.2091 13.7909 14 16 14Z"
-              stroke="#4B5563"
-              strokeWidth="1.5"
-            />
-          </svg>
-          <svg
-            className="h-5 w-8"
-            viewBox="0 0 32 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect width="32" height="20" rx="2" fill="#E5E7EB" />
-            <path
-              d="M21.5 6H10.5C9.67157 6 9 6.67157 9 7.5V12.5C9 13.3284 9.67157 14 10.5 14H21.5C22.3284 14 23 13.3284 23 12.5V7.5C23 6.67157 22.3284 6 21.5 6Z"
-              stroke="#4B5563"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <svg
-            className="h-5 w-8"
-            viewBox="0 0 32 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect width="32" height="20" rx="2" fill="#E5E7EB" />
-            <path
-              d="M22 7H10L11.5 13H20.5L22 7Z"
-              stroke="#4B5563"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M19 10C19 8.34315 17.6569 7 16 7C14.3431 7 13 8.34315 13 10C13 11.6569 14.3431 13 16 13C17.6569 13 19 11.6569 19 10Z"
-              fill="#4B5563"
-            />
-          </svg>
+          <FaLock className="h-5 w-8 text-gray-500" />
         </div>
       </div>
     </div>

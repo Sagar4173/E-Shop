@@ -20,6 +20,12 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password,
+      lastLogin: new Date(),
+      notificationPreferences: {
+        email: true,
+        push: false,
+        sms: false,
+      },
     });
 
     if (user) {
@@ -28,6 +34,11 @@ exports.registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         isAdmin: user.isAdmin,
+        phoneNumber: user.phoneNumber || "",
+        enable2FA: user.enable2FA || false,
+        notificationPreferences: user.notificationPreferences,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
         token: generateToken(user._id),
       });
     } else {
@@ -51,11 +62,24 @@ exports.loginUser = async (req, res) => {
 
     // Check if user exists and password matches
     if (user && (await user.matchPassword(password))) {
+      // Update last login time
+      user.lastLogin = new Date();
+      await user.save();
+
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
         isAdmin: user.isAdmin,
+        phoneNumber: user.phoneNumber || "",
+        enable2FA: user.enable2FA || false,
+        notificationPreferences: user.notificationPreferences || {
+          email: true,
+          push: false,
+          sms: false,
+        },
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
         token: generateToken(user._id),
       });
     } else {
@@ -81,6 +105,15 @@ exports.getUserProfile = async (req, res) => {
         email: user.email,
         isAdmin: user.isAdmin,
         address: user.address || {},
+        phoneNumber: user.phoneNumber || "",
+        enable2FA: user.enable2FA || false,
+        notificationPreferences: user.notificationPreferences || {
+          email: true,
+          push: false,
+          sms: false,
+        },
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -113,6 +146,22 @@ exports.updateUserProfile = async (req, res) => {
         user.password = req.body.password;
       }
 
+      // Handle new profile fields
+      if (req.body.phoneNumber !== undefined) {
+        user.phoneNumber = req.body.phoneNumber;
+      }
+
+      if (req.body.enable2FA !== undefined) {
+        user.enable2FA = req.body.enable2FA;
+      }
+
+      if (req.body.notificationPreferences) {
+        user.notificationPreferences = {
+          ...user.notificationPreferences,
+          ...req.body.notificationPreferences,
+        };
+      }
+
       const updatedUser = await user.save();
 
       res.json({
@@ -121,7 +170,71 @@ exports.updateUserProfile = async (req, res) => {
         email: updatedUser.email,
         isAdmin: updatedUser.isAdmin,
         address: updatedUser.address,
+        phoneNumber: updatedUser.phoneNumber,
+        enable2FA: updatedUser.enable2FA,
+        notificationPreferences: updatedUser.notificationPreferences,
+        createdAt: updatedUser.createdAt,
+        lastLogin: updatedUser.lastLogin,
         token: generateToken(updatedUser._id),
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Get all users
+// @route   GET /api/users
+// @access  Private/Admin
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select("-password");
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+      await user.deleteOne();
+      res.json({ message: "User removed" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Update user role
+// @route   PUT /api/users/:id/role
+// @access  Private/Admin
+exports.updateUserRole = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+      user.isAdmin = Boolean(req.body.isAdmin);
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        isAdmin: updatedUser.isAdmin,
       });
     } else {
       res.status(404).json({ message: "User not found" });

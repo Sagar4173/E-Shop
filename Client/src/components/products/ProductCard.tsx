@@ -101,10 +101,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
               {discount}% Off
             </span>
           )}
-          
+
           {/* Make the entire image area clickable using an absolute positioned link */}
-          <Link 
-            to={`/products/${product._id}`} 
+          <Link
+            to={`/products/${product._id}`}
             className="absolute inset-0"
             aria-label={`View ${product.name} details`}
           >
