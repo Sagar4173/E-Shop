@@ -2,6 +2,7 @@ import { useState, FormEvent, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CartContext } from "../../context/CartContext";
+import { createOrder } from "../../services/orderService";
 
 const CheckoutForm = () => {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const CheckoutForm = () => {
       city: "",
       state: "",
       postal_code: "",
-      country: "US",
+      country: "India",
     },
   });
 
@@ -64,6 +65,7 @@ const CheckoutForm = () => {
     setProcessing(true);
 
     try {
+      // Create payment method
       const { error: paymentMethodError, paymentMethod } =
         await stripe.createPaymentMethod({
           type: "card",
@@ -81,19 +83,62 @@ const CheckoutForm = () => {
         return;
       }
 
-      // Create order and process payment here
-      // For now, we'll simulate success
+      // Calculate order amounts
+      const subtotal = getCartTotal();
+      const shippingAmount = subtotal >= 50 ? 0 : 10;
+      const taxAmount = subtotal * 0.18; // 18% tax
+      const totalAmount = subtotal + shippingAmount + taxAmount;
+
+      // Prepare order data
+      const orderData = {
+        orderItems: cartItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.imageUrl,
+          product: item.id,
+        })),
+        shippingAddress: {
+          street:
+            formData.address.line1 +
+            (formData.address.line2 ? ", " + formData.address.line2 : ""),
+          city: formData.address.city,
+          state: formData.address.state,
+          postalCode: formData.address.postal_code,
+          country: formData.address.country,
+        },
+        paymentMethod: "Stripe",
+        paymentResult: {
+          id: paymentMethod.id,
+          status: "succeeded",
+          update_time: new Date().toISOString(),
+          email_address: formData.email,
+        },
+        subtotal,
+        taxAmount,
+        shippingAmount,
+        totalAmount,
+      };
+
+      // Create the order in our system
+      const createdOrder = await createOrder(orderData);
+
+      // Set payment as successful
       setSucceeded(true);
       setError(null);
+
+      // Clear the shopping cart
       clearCart();
 
-      // Redirect to order confirmation
-      navigate("/order-confirmation");
+      // Redirect to order confirmation with the actual order ID
+      navigate(`/order-confirmation?id=${createdOrder._id}`);
     } catch (err) {
+      console.error("Checkout error:", err);
       setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred during checkout"
       );
-    } finally {
       setProcessing(false);
     }
   };
@@ -245,28 +290,33 @@ const CheckoutForm = () => {
                 id="address.country"
                 name="address.country"
                 value={formData.address.country}
-                onChange={handleChange as any}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    address: {
+                      ...formData.address,
+                      country: e.target.value,
+                    },
+                  });
+                }}
                 className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
+                <option value="India">India</option>
                 <option value="US">United States</option>
-                <option value="CA">Canada</option>
-                <option value="GB">United Kingdom</option>
-                <option value="AU">Australia</option>
-                {/* Add more countries as needed */}
+                <option value="Canada">Canada</option>
+                <option value="UK">United Kingdom</option>
+                <option value="Australia">Australia</option>
               </select>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Payment Method */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Payment Method
+          Payment Details
         </h2>
-
-        {/* When using Stripe Elements */}
         {stripe && elements ? (
           <div className="border border-gray-300 rounded-md p-4">
             <CardElement

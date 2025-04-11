@@ -37,46 +37,13 @@ interface User {
   name: string;
   email: string;
   isAdmin: boolean;
+  addresses?: Address[];
 }
-
-// Mock data - in production, this would be fetched from the API
-const defaultAddresses: Address[] = [
-  {
-    id: "addr-1",
-    type: "Home",
-    isDefault: true,
-    street: "123 Main Street",
-    city: "New York",
-    state: "NY",
-    postalCode: "10001",
-    country: "US",
-  },
-  {
-    id: "addr-2",
-    type: "Work",
-    isDefault: false,
-    street: "456 Business Ave",
-    city: "San Francisco",
-    state: "CA",
-    postalCode: "94105",
-    country: "US",
-  },
-  {
-    id: "addr-3",
-    type: "Family",
-    isDefault: false,
-    street: "789 Family Road",
-    city: "Los Angeles",
-    state: "CA",
-    postalCode: "90001",
-    country: "US",
-  },
-];
 
 const AddressesPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>(defaultAddresses);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -98,19 +65,31 @@ const AddressesPage = () => {
       return;
     }
 
-    // Get user data
-    const userData = getCurrentUser();
-    if (userData) {
-      setUser({
-        _id: userData._id,
-        name: userData.name,
-        email: userData.email,
-        isAdmin: userData.isAdmin,
-      });
-    }
+    // Fetch user data including addresses
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const userData = await getUserProfile();
+        setUser({
+          _id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          isAdmin: userData.isAdmin,
+          addresses: userData.addresses,
+        });
 
-    // In a real app, you would fetch the user's addresses here
-    // fetchUserAddresses();
+        // Set addresses from user data if available
+        if (userData.addresses && Array.isArray(userData.addresses)) {
+          setAddresses(userData.addresses);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -162,6 +141,9 @@ const AddressesPage = () => {
             : addr
         );
         setAddresses(updatedAddresses);
+
+        // In a real app, you would save this to the backend
+        // await updateUserAddresses(updatedAddresses);
       } else {
         // Add new address
         const newAddress: Address = {
@@ -174,7 +156,11 @@ const AddressesPage = () => {
           postalCode: formData.postalCode,
           country: formData.country,
         };
-        setAddresses([...addresses, newAddress]);
+        const newAddresses = [...addresses, newAddress];
+        setAddresses(newAddresses);
+
+        // In a real app, you would save this to the backend
+        // await updateUserAddresses(newAddresses);
       }
 
       resetForm();
@@ -200,7 +186,13 @@ const AddressesPage = () => {
 
   const handleDelete = (addressId: string) => {
     if (window.confirm("Are you sure you want to delete this address?")) {
-      setAddresses(addresses.filter((addr) => addr.id !== addressId));
+      const updatedAddresses = addresses.filter(
+        (addr) => addr.id !== addressId
+      );
+      setAddresses(updatedAddresses);
+
+      // In a real app, you would save this to the backend
+      // await updateUserAddresses(updatedAddresses);
     }
   };
 
@@ -210,6 +202,9 @@ const AddressesPage = () => {
       isDefault: addr.id === addressId,
     }));
     setAddresses(updatedAddresses);
+
+    // In a real app, you would save this to the backend
+    // await updateUserAddresses(updatedAddresses);
   };
 
   return (

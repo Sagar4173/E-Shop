@@ -6,10 +6,12 @@ import {
   FaSearch,
   FaBars,
   FaTimes,
+  FaHeart,
 } from "react-icons/fa";
 import { useContext } from "react";
 import { CartContext } from "../../context/CartContext";
 import { isAuthenticated, getCurrentUser } from "../../services/authService";
+import { getWishlistItems } from "../../services/wishlistService";
 import SearchBar from "../products/SearchBar";
 
 const Header = () => {
@@ -19,13 +21,60 @@ const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
+  const [wishlistCount, setWishlistCount] = useState<number>(0);
 
   // Check if user is logged in on component mount
   useEffect(() => {
-    if (isAuthenticated()) {
-      setUser(getCurrentUser());
-    }
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        const userData = getCurrentUser();
+        setUser(userData);
+
+        // Fetch wishlist count
+        try {
+          const wishlistItems = await getWishlistItems(userData._id);
+          setWishlistCount(wishlistItems?.length || 0);
+        } catch (error) {
+          console.error("Failed to fetch wishlist count:", error);
+        }
+      }
+    };
+
+    checkAuth();
+
+    // Add event listener for storage changes (for wishlist updates)
+    const handleStorageChange = async (event: StorageEvent) => {
+      if (event.key === "wishlist") {
+        const userData = getCurrentUser();
+        if (userData) {
+          try {
+            const wishlistItems = await getWishlistItems(userData._id);
+            setWishlistCount(wishlistItems?.length || 0);
+          } catch (error) {
+            console.error("Failed to update wishlist count:", error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
+
+  // Refresh wishlist count when navigation occurs (to catch updates)
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const userData = getCurrentUser();
+      getWishlistItems(userData._id)
+        .then((items) => setWishlistCount(items?.length || 0))
+        .catch((error) =>
+          console.error("Failed to refresh wishlist count:", error)
+        );
+    }
+  }, [location.pathname]);
 
   // Track scroll for header style changes
   useEffect(() => {
@@ -115,6 +164,22 @@ const Header = () => {
           >
             <FaSearch className="text-lg" />
           </button>
+
+          {/* Wishlist icon - only show if user is logged in */}
+          {user && (
+            <Link
+              to="/account/wishlist"
+              className="relative p-2 text-gray-700 hover:text-indigo-600 transition-colors"
+              aria-label="Wishlist"
+            >
+              <FaHeart className="text-lg" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse-slow">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           {/* Cart icon */}
           <Link
@@ -217,6 +282,20 @@ const Header = () => {
             >
               Contact
             </Link>
+            {user && (
+              <Link
+                to="/account/wishlist"
+                className="px-4 py-3 text-sm font-medium hover:bg-gray-50 flex items-center"
+              >
+                <FaHeart className="mr-2 text-red-500" />
+                Wishlist
+                {wishlistCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {!user && (
               <Link
                 to="/login"

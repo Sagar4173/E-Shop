@@ -31,6 +31,7 @@ import {
 } from "../../services/authService";
 import { format } from "date-fns";
 import { getUserOrders } from "../../services/orderService";
+import { getWishlistItems } from "../../services/wishlistService";
 
 interface User {
   _id: string;
@@ -46,6 +47,18 @@ interface User {
     push: boolean;
     sms: boolean;
   };
+  addresses?: Address[];
+}
+
+interface Address {
+  id: string;
+  type: string;
+  isDefault: boolean;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
 }
 
 interface ProfileFormData {
@@ -99,6 +112,7 @@ const ProfilePage = () => {
     type: "success" | "error";
   } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -121,6 +135,7 @@ const ProfilePage = () => {
           enable2FA: userData.enable2FA,
           phoneNumber: userData.phoneNumber,
           notificationPreferences: userData.notificationPreferences,
+          addresses: userData.addresses,
         });
 
         setFormData({
@@ -147,6 +162,10 @@ const ProfilePage = () => {
         // Fetch user orders
         const fetchedOrders = await getUserOrders(userData._id);
         setOrders(fetchedOrders);
+
+        // Fetch wishlist items
+        const fetchedWishlistItems = await getWishlistItems(userData._id);
+        setWishlistItems(fetchedWishlistItems);
       } catch (error) {
         console.error("Failed to fetch user data:", error);
       }
@@ -248,6 +267,7 @@ const ProfilePage = () => {
         enable2FA: updatedUser.enable2FA,
         phoneNumber: updatedUser.phoneNumber,
         notificationPreferences: updatedUser.notificationPreferences,
+        addresses: updatedUser.addresses,
       });
 
       setMessage({ text: "Profile updated successfully", type: "success" });
@@ -494,7 +514,9 @@ const ProfilePage = () => {
                             <p className="text-sm text-gray-600">
                               Saved Addresses
                             </p>
-                            <p className="text-xl font-bold">3</p>
+                            <p className="text-xl font-bold">
+                              {user?.addresses?.length || 0}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -508,7 +530,9 @@ const ProfilePage = () => {
                             <p className="text-sm text-gray-600">
                               Wishlist Items
                             </p>
-                            <p className="text-xl font-bold">7</p>
+                            <p className="text-xl font-bold">
+                              {wishlistItems.length}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -554,7 +578,7 @@ const ProfilePage = () => {
                           </div>
                         </Link>
                         <Link
-                          to="/wishlist"
+                          to="/account/wishlist"
                           className="bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                         >
                           <div className="flex flex-col items-center text-center">
@@ -702,25 +726,42 @@ const ProfilePage = () => {
                           <h4 className="text-sm font-medium text-gray-500 mb-2">
                             Default Shipping Address
                           </h4>
-                          {formData.address.street ? (
+                          {user?.addresses?.find(
+                            (address) => address.isDefault
+                          ) ? (
                             <div className="bg-white p-4 border border-gray-200 rounded-lg">
                               <p className="font-medium">Shipping Address</p>
                               <p className="text-gray-600">
-                                {formData.address.street}
+                                {
+                                  user.addresses.find(
+                                    (address) => address.isDefault
+                                  )?.street
+                                }
                               </p>
                               <p className="text-gray-600">
-                                {formData.address.city},{" "}
-                                {formData.address.state}{" "}
-                                {formData.address.postalCode}
+                                {
+                                  user.addresses.find(
+                                    (address) => address.isDefault
+                                  )?.city
+                                }
+                                ,{" "}
+                                {
+                                  user.addresses.find(
+                                    (address) => address.isDefault
+                                  )?.state
+                                }{" "}
+                                {
+                                  user.addresses.find(
+                                    (address) => address.isDefault
+                                  )?.postalCode
+                                }
                               </p>
                               <p className="text-gray-600">
-                                {formData.address.country === "US"
-                                  ? "United States"
-                                  : formData.address.country === "CA"
-                                  ? "Canada"
-                                  : formData.address.country === "UK"
-                                  ? "United Kingdom"
-                                  : formData.address.country}
+                                {
+                                  user.addresses.find(
+                                    (address) => address.isDefault
+                                  )?.country
+                                }
                               </p>
                               <Link
                                 to="/account/addresses"

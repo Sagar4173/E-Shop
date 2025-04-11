@@ -1,22 +1,151 @@
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaShoppingCart, FaEye, FaStar, FaRegStar } from "react-icons/fa";
+import {
+  FaShoppingCart,
+  FaEye,
+  FaStar,
+  FaRegStar,
+  FaHeart,
+  FaRegHeart,
+  FaTrash,
+  FaCheck,
+} from "react-icons/fa";
 import { Product } from "../../types";
 import { CartContext } from "../../context/CartContext";
+import {
+  addToWishlist,
+  removeFromWishlist,
+  isInWishlist,
+} from "../../services/wishlistService";
+import { isAuthenticated } from "../../services/authService";
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const { addToCart } = useContext(CartContext) || {
+  const { addToCart, removeFromCart, cartItems } = useContext(CartContext) || {
     addToCart: () => console.error("CartContext not available"),
+    removeFromCart: () => console.error("CartContext not available"),
+    cartItems: [],
   };
+
+  const [inWishlist, setInWishlist] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [inCart, setInCart] = useState<boolean>(false);
+
+  // Check if the product is already in cart and wishlist when component mounts
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (isAuthenticated()) {
+        setIsLoggedIn(true);
+        try {
+          const status = await isInWishlist(product._id);
+          setInWishlist(status);
+        } catch (error) {
+          console.error("Failed to check wishlist status:", error);
+        }
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+
+    // Check cart status
+    if (cartItems) {
+      const existingItem = cartItems.find(
+        (item) => item.id === product._id || item._id === product._id
+      );
+      setInCart(!!existingItem);
+    }
+
+    checkWishlistStatus();
+  }, [product._id, cartItems]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product, 1);
+    setInCart(true);
+
+    // Show toast notification
+    setToastMessage("Added to cart successfully!");
+    setToastType("success");
+    setShowToast(true);
+
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const handleRemoveFromCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    removeFromCart(product._id);
+    setInCart(false);
+
+    // Show toast notification
+    setToastMessage("Removed from cart successfully!");
+    setToastType("success");
+    setShowToast(true);
+
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isLoggedIn) {
+      // Show notification
+      setToastMessage("Please log in to add items to your wishlist");
+      setToastType("error");
+      setShowToast(true);
+
+      // Hide toast after 3 seconds
+      setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(product._id);
+        setInWishlist(false);
+        setToastMessage("Removed from wishlist");
+      } else {
+        await addToWishlist(product);
+        setInWishlist(true);
+        setToastMessage("Added to wishlist");
+      }
+
+      setToastType("success");
+      setShowToast(true);
+
+      // Dispatch storage event to update wishlist counter in header
+      window.dispatchEvent(new StorageEvent("storage", { key: "wishlist" }));
+    } catch (error) {
+      console.error("Failed to update wishlist:", error);
+      setToastMessage("Failed to update wishlist");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsLoading(false);
+
+      // Hide toast after 3 seconds
+      setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+    }
   };
 
   // Format price with currency
@@ -42,7 +171,22 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const discount = getDiscountPercentage();
 
   return (
-    <div className="group h-full">
+    <div className="group h-full relative">
+      {/* Toast notification */}
+      {showToast && (
+        <div className="absolute top-0 right-0 z-50 transform transition-all duration-300 ease-out animate-slideInDown w-full">
+          <div
+            className={`rounded-lg shadow-lg px-4 py-3 flex items-center ${
+              toastType === "success"
+                ? "bg-green-100 text-green-800 border-l-4 border-green-500"
+                : "bg-red-100 text-red-800 border-l-4 border-red-500"
+            }`}
+          >
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div className="relative bg-white rounded-lg shadow-sm overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md">
         {/* Product image container with overlay */}
         <div className="relative">
@@ -60,26 +204,57 @@ const ProductCard = ({ product }: ProductCardProps) => {
             />
 
             {/* Quick action overlay (appears on hover) */}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
               <div className="flex gap-3">
                 <Link
                   to={`/products/${product._id}`}
                   className="w-10 h-10 rounded-full bg-white text-gray-800 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                   title="Quick view"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <FaEye />
                 </Link>
+                {inCart ? (
+                  <button
+                    onClick={handleRemoveFromCart}
+                    className="w-10 h-10 rounded-full bg-white text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors"
+                    title="Remove from cart"
+                  >
+                    <FaTrash />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={product.stock <= 0}
+                    className={`w-10 h-10 rounded-full bg-white flex items-center justify-center transition-colors ${
+                      product.stock > 0
+                        ? "text-gray-800 hover:bg-indigo-50 hover:text-indigo-600"
+                        : "text-gray-400 cursor-not-allowed"
+                    }`}
+                    title={product.stock > 0 ? "Add to cart" : "Out of stock"}
+                  >
+                    <FaShoppingCart />
+                  </button>
+                )}
                 <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock <= 0}
+                  onClick={handleWishlistToggle}
+                  disabled={isLoading}
                   className={`w-10 h-10 rounded-full bg-white flex items-center justify-center transition-colors ${
-                    product.stock > 0
-                      ? "text-gray-800 hover:bg-indigo-50 hover:text-indigo-600"
-                      : "text-gray-400 cursor-not-allowed"
+                    inWishlist
+                      ? "text-red-500 hover:bg-red-50"
+                      : "text-gray-800 hover:bg-indigo-50 hover:text-indigo-600"
                   }`}
-                  title={product.stock > 0 ? "Add to cart" : "Out of stock"}
+                  title={
+                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                  }
                 >
-                  <FaShoppingCart />
+                  {isLoading ? (
+                    <span className="animate-pulse">...</span>
+                  ) : inWishlist ? (
+                    <FaHeart />
+                  ) : (
+                    <FaRegHeart />
+                  )}
                 </button>
               </div>
             </div>
@@ -87,25 +262,48 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
           {/* Status badges */}
           {product.stock <= 0 && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
               Out of Stock
             </span>
           )}
           {product.featured && (
-            <span className="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-1 rounded">
+            <span className="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-1 rounded z-10">
               Featured
             </span>
           )}
           {discount && discount > 0 && (
-            <span className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <span className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
               {discount}% Off
             </span>
           )}
 
-          {/* Make the entire image area clickable using an absolute positioned link */}
+          {/* Wishlist icon in corner when not hovering */}
+          <button
+            onClick={handleWishlistToggle}
+            className={`absolute top-2 ${
+              product.featured || (discount && discount > 0)
+                ? "right-16"
+                : "right-2"
+            } 
+                       w-8 h-8 rounded-full bg-white/80 flex items-center justify-center
+                       ${
+                         inWishlist ? "text-red-500" : "text-gray-500"
+                       } hover:bg-white transition-colors z-20`}
+            title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            {isLoading ? (
+              <span className="animate-pulse">...</span>
+            ) : inWishlist ? (
+              <FaHeart />
+            ) : (
+              <FaRegHeart />
+            )}
+          </button>
+
+          {/* Make the entire image area clickable using an absolute positioned link, but with lower z-index */}
           <Link
             to={`/products/${product._id}`}
-            className="absolute inset-0"
+            className="absolute inset-0 z-0"
             aria-label={`View ${product.name} details`}
           >
             <span className="sr-only">View product details</span>
@@ -160,18 +358,28 @@ const ProductCard = ({ product }: ProductCardProps) => {
                     </span>
                   )}
               </div>
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-                className={`flex items-center justify-center p-2 rounded-full transition-colors ${
-                  product.stock > 0
-                    ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-                aria-label="Add to cart"
-              >
-                <FaShoppingCart className="text-sm" />
-              </button>
+              {inCart ? (
+                <button
+                  onClick={handleRemoveFromCart}
+                  className="flex items-center justify-center p-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  aria-label="Remove from cart"
+                >
+                  <FaTrash className="text-sm" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                  className={`flex items-center justify-center p-2 rounded-full transition-colors ${
+                    product.stock > 0
+                      ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                  aria-label="Add to cart"
+                >
+                  <FaShoppingCart className="text-sm" />
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import api from "./api";
-import { ShippingAddress } from "../types";
+import { ShippingAddress, Order } from "../types";
 
 interface OrderItem {
   product: string;
@@ -39,7 +39,9 @@ interface ReturnRequestData {
 }
 
 // Create a new order
-export const createOrder = async (orderData: CreateOrderData) => {
+export const createOrder = async (
+  orderData: CreateOrderData
+): Promise<Order> => {
   try {
     const response = await api.post("/orders", orderData);
     return response.data;
@@ -174,6 +176,16 @@ export const updateReturnStatus = async (
 export const getAllReturns = async () => {
   try {
     const response = await api.get("/orders/returns");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get return requests for an order
+export const getOrderReturns = async (id: string) => {
+  try {
+    const response = await api.get(`/orders/${id}/returns`);
     return response.data;
   } catch (error) {
     throw error;

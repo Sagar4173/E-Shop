@@ -13,6 +13,7 @@ import OrdersPage from "./pages/account/OrdersPage";
 import ProfilePage from "./pages/account/ProfilePage";
 import AddressesPage from "./pages/account/AddressesPage";
 import ReturnRequestPage from "./pages/account/ReturnRequestPage";
+import WishlistPage from "./pages/account/WishlistPage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import AdminProductsPage from "./pages/admin/ProductsPage";
 import AdminOrdersPage from "./pages/admin/OrdersPage";
@@ -62,6 +63,7 @@ const App = () => {
           <Route path="/account/orders" element={<OrdersPage />} />
           <Route path="/account/profile" element={<ProfilePage />} />
           <Route path="/account/addresses" element={<AddressesPage />} />
+          <Route path="/account/wishlist" element={<WishlistPage />} />
           <Route
             path="/account/orders/:id/return"
             element={<ReturnRequestPage />}

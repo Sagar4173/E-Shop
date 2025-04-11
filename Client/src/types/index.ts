@@ -10,6 +10,8 @@ export interface Product {
   rating?: number;
   numReviews?: number;
   reviews?: Review[];
+  featured?: boolean;
+  originalPrice?: number;
   createdAt?: string;
   updatedAt?: string;
 }
