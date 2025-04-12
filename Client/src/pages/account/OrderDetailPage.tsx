@@ -37,23 +37,44 @@ const OrderDetailPage: React.FC = () => {
 
       try {
         setLoading(true);
+        console.log(`Fetching order details for ID: ${id}`);
+
         // Fetch order details
         const orderData = await getOrderById(id);
+        console.log("Order data received:", orderData);
         setOrder(orderData);
 
         // Fetch status history
         try {
           const historyData = await getOrderStatusHistory(id);
           setStatusHistory(historyData);
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error fetching status history:", err);
           // Don't set error here, as we can still display the order without history
         }
 
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching order:", err);
-        setError("Failed to load order details. Please try again.");
+        let errorMessage = "Failed to load order details. Please try again.";
+
+        // Enhanced error reporting
+        if (err.response) {
+          const statusCode = err.response.status;
+          if (statusCode === 404) {
+            errorMessage =
+              "Order not found. It may have been deleted or you don't have permission to view it.";
+          } else if (statusCode === 401) {
+            errorMessage =
+              "You're not authorized to view this order. Please log in first.";
+          } else {
+            errorMessage = `Server error (${statusCode}): ${
+              err.response.data?.message || "Unknown error"
+            }`;
+          }
+        }
+
+        setError(errorMessage);
         setLoading(false);
       }
     };

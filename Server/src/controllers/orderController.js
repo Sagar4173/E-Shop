@@ -97,6 +97,10 @@ exports.updateOrderToPaid = async (req, res) => {
     if (order) {
       order.isPaid = true;
       order.paidAt = Date.now();
+      // Update order status to processing when paid
+      if (order.status === "pending") {
+        order.status = "processing";
+      }
       order.paymentResult = {
         id: req.body.id,
         status: req.body.status,

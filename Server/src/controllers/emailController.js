@@ -415,6 +415,22 @@ const emailTemplates = {
 // Helper function to send emails
 const sendEmail = async (to, subject, htmlContent) => {
   try {
+    // Check if email configuration is complete
+    if (
+      !process.env.EMAIL_HOST ||
+      !process.env.EMAIL_USER ||
+      !process.env.EMAIL_PASS
+    ) {
+      console.error(
+        "Email configuration incomplete. Check environment variables."
+      );
+      return {
+        success: false,
+        message:
+          "Email configuration incomplete. Please contact your administrator.",
+      };
+    }
+
     // Skip actual email sending in development environment if configured
     if (
       process.env.NODE_ENV === "development" &&
@@ -440,8 +456,24 @@ const sendEmail = async (to, subject, htmlContent) => {
     console.log("Email sent: %s", info.messageId);
     return { success: true, message: "Email sent successfully" };
   } catch (error) {
-    console.error("Error sending email:", error);
-    return { success: false, message: "Failed to send email" };
+    console.error("Error sending email:", error.message);
+    // More detailed error information for debugging
+    if (error.code === "EAUTH") {
+      return {
+        success: false,
+        message: "Authentication failed. Check email credentials.",
+      };
+    } else if (error.code === "ESOCKET") {
+      return {
+        success: false,
+        message: "Network error. Check email server settings.",
+      };
+    } else {
+      return {
+        success: false,
+        message: `Failed to send email: ${error.message}`,
+      };
+    }
   }
 };
 

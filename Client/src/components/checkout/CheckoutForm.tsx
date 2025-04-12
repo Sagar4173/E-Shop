@@ -218,6 +218,29 @@ const CheckoutForm = ({
       // Create the order in our system
       const createdOrder = await createOrder(orderData);
 
+      try {
+        // Update order as paid in the backend - will change status from pending to processing
+        await fetch(
+          `${import.meta.env.VITE_API_URL}/api/orders/${createdOrder._id}/pay`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              id: paymentMethod.id,
+              status: "succeeded",
+              update_time: new Date().toISOString(),
+              email_address: formData.email,
+            }),
+          }
+        );
+      } catch (payError) {
+        console.error("Failed to update order payment status:", payError);
+        // Continue with checkout even if this fails
+      }
+
       // Send order confirmation email
       await sendOrderConfirmationEmail(createdOrder._id, createdOrder);
 

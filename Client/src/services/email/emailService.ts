@@ -18,19 +18,32 @@ export const sendOrderConfirmationEmail = async (
   order: Order
 ): Promise<EmailResponse> => {
   try {
+    // Get recipient email from available sources
+    const recipientEmail =
+      order.user?.email ||
+      order.shippingAddress?.email ||
+      order.paymentResult?.email_address;
+
+    if (!orderId || !recipientEmail) {
+      console.error("Missing required fields for order confirmation email", {
+        hasOrderId: !!orderId,
+        hasEmail: !!recipientEmail,
+      });
+      return {
+        success: false,
+        message: "Missing required information for order confirmation email",
+      };
+    }
+
     const response = await api.post("/emails/order-confirmation", {
       orderId,
-      order,
-      recipient:
-        order.user?.email ||
-        order.shippingAddress.email ||
-        order.paymentResult?.email_address,
-      subject: `Order Confirmation #${orderId.substring(0, 8).toUpperCase()}`,
+      recipient: recipientEmail,
     });
+
     return response.data;
   } catch (error) {
     console.error("Failed to send order confirmation email:", error);
-    // Return success true even if email fails - don't block the checkout process
+    // Return success false when email fails but don't block the checkout process
     return {
       success: false,
       message:
