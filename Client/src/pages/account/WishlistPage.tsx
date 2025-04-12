@@ -544,7 +544,7 @@ const WishlistPage = () => {
                             onError={(e) => {
                               // Fallback image if product image fails to load
                               (e.target as HTMLImageElement).src =
-                                "https://via.placeholder.com/150?text=Image+Not+Available";
+                                "https://placehold.co/150?text=Image+Not+Available";
                             }}
                           />
                           {item.stock <= 0 && (

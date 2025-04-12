@@ -199,7 +199,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               onError={(e) => {
                 // Fallback image if product image fails to load
                 (e.target as HTMLImageElement).src =
-                  "https://via.placeholder.com/300x300?text=Image+Not+Available";
+                  "https://placehold.co/300x300?text=Image+Not+Available";
               }}
             />
 

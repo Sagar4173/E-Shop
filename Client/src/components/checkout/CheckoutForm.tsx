@@ -54,7 +54,7 @@ const CheckoutForm = ({
       city: "",
       state: "",
       postal_code: "",
-      country: "India",
+      country: "IN", // Changed from "India" to "IN" for Stripe compatibility
     },
   });
 
@@ -84,11 +84,11 @@ const CheckoutForm = ({
 
     // Format validation for postal code based on country
     const postalRegexByCountry: Record<string, RegExp> = {
-      India: /^\d{6}$/,
+      IN: /^\d{6}$/, // Changed from "India" to "IN"
       US: /^\d{5}(-\d{4})?$/,
       UK: /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/i,
-      Canada: /^[A-Z]\d[A-Z] \d[A-Z]\d$/i,
-      Australia: /^\d{4}$/,
+      CA: /^[A-Z]\d[A-Z] \d[A-Z]\d$/i, // Changed from "Canada" to "CA"
+      AU: /^\d{4}$/, // Changed from "Australia" to "AU"
     };
 
     const regex = postalRegexByCountry[formData.address.country];
@@ -187,13 +187,13 @@ const CheckoutForm = ({
           quantity: item.quantity,
           price: item.price,
           imageUrl: item.imageUrl,
-          product: item._id,
+          product: item.id, // Changed from item._id to item.id - this is how IDs are stored in the cart
         })),
         shippingAddress: {
           fullName: formData.name,
-          address:
+          street:
             formData.address.line1 +
-            (formData.address.line2 ? ", " + formData.address.line2 : ""),
+            (formData.address.line2 ? ", " + formData.address.line2 : ""), // Changed from 'address' to 'street' to match schema
           city: formData.address.city,
           state: formData.address.state,
           postalCode: formData.address.postal_code,
@@ -458,15 +458,15 @@ const CheckoutForm = ({
                     className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
-                    <option value="India">India</option>
+                    <option value="IN">India</option>
                     <option value="US">United States</option>
-                    <option value="Canada">Canada</option>
+                    <option value="CA">Canada</option>
                     <option value="UK">United Kingdom</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Germany">Germany</option>
-                    <option value="France">France</option>
-                    <option value="Japan">Japan</option>
-                    <option value="China">China</option>
+                    <option value="AU">Australia</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="JP">Japan</option>
+                    <option value="CN">China</option>
                   </select>
                 </div>
               </div>

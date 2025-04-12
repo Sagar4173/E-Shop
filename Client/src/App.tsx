@@ -65,6 +65,7 @@ const App = () => {
             element={<Navigate replace to="/account/profile" />}
           />
           <Route path="/account/orders" element={<OrdersPage />} />
+          <Route path="/account/orders/:id" element={<OrdersPage />} />
           <Route path="/account/profile" element={<ProfilePage />} />
           <Route path="/account/addresses" element={<AddressesPage />} />
           <Route path="/account/wishlist" element={<WishlistPage />} />
@@ -77,6 +78,7 @@ const App = () => {
           <Route path="/admin" element={<DashboardPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/:id" element={<OrdersPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/products/new" element={<ProductFormPage />} />
           <Route

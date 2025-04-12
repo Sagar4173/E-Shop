@@ -38,7 +38,12 @@ exports.createOrder = async (req, res) => {
       const product = await Product.findById(item.product);
       if (product) {
         product.stock -= item.quantity;
-        await product.save();
+        // Make sure we're not creating a new product document by using save()
+        // Just update the stock field specifically
+        await Product.updateOne(
+          { _id: product._id },
+          { $set: { stock: product.stock } }
+        );
       }
     }
 
