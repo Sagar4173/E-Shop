@@ -8,6 +8,8 @@ import CheckoutPage from "./pages/checkout/CheckoutPage";
 import OrderConfirmationPage from "./pages/checkout/OrderConfirmationPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import AccountPage from "./pages/account/AccountPage";
 import OrdersPage from "./pages/account/OrdersPage";
 import ProfilePage from "./pages/account/ProfilePage";
@@ -54,6 +56,8 @@ const App = () => {
           {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* User Account Routes */}
           <Route

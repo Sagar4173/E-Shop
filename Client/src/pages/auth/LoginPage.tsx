@@ -14,6 +14,7 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -30,13 +31,23 @@ const LoginPage = () => {
     }));
   };
 
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRememberMe(e.target.checked);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      await login({ email: formData.email, password: formData.password });
+      await login(
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+        rememberMe
+      );
       navigate(from, { replace: true });
     } catch (err) {
       setError(
@@ -93,20 +104,12 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Password
-                </label>
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaLock className="text-gray-400" />
@@ -122,6 +125,14 @@ const LoginPage = () => {
                   required
                 />
               </div>
+              <div className="mt-1 text-right">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <div className="flex items-center">
@@ -129,6 +140,8 @@ const LoginPage = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={handleCheckboxChange}
                 className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
               />
               <label

@@ -6,6 +6,7 @@ const { protect, admin } = require("../middlewares/authMiddleware");
 // Public routes
 router.post("/welcome", emailController.sendWelcomeEmail);
 router.post("/password-reset", emailController.sendPasswordResetEmail);
+router.post("/password-reset-otp", emailController.sendPasswordResetOtpEmail);
 router.post("/contact-form", emailController.sendContactFormConfirmation);
 router.post("/verification-otp", emailController.sendVerificationOtpEmail);
 

@@ -323,9 +323,39 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // In a production environment, send actual email with OTP
-    // For now, we'll just log it and return it for testing
-    console.log(`Password reset OTP for ${email}: ${otp}`);
+    // Send the OTP via email
+    try {
+      // Call the email service to send password reset OTP
+      const emailResponse = await fetch(
+        `${
+          process.env.BASE_URL || "http://localhost:5000"
+        }/api/emails/password-reset-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            name: user.name,
+            otp,
+          }),
+        }
+      );
+
+      const emailResult = await emailResponse.json();
+
+      if (!emailResult.success) {
+        console.error(
+          "Failed to send password reset email:",
+          emailResult.message
+        );
+      }
+    } catch (error) {
+      console.error("Error sending password reset email:", error);
+    }
+
+    console.log(`Password reset OTP for ${email}: ${otp}`); // For testing only, remove in production
 
     res.json({
       success: true,

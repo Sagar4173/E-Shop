@@ -17,6 +17,7 @@ const ResetPasswordPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Extract email from URL query params
   useEffect(() => {
@@ -27,9 +28,67 @@ const ResetPasswordPage: React.FC = () => {
     }
   }, [location]);
 
+  // Cooldown timer for resend button
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (resendCooldown > 0) {
+      interval = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendCooldown]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleResendOTP = async () => {
+    if (!formData.email || resendCooldown > 0) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Make sure we don't have a duplicate "api" in the path
+      // Use a direct URL to the backend to avoid the path issues
+      const response = await fetch(
+        "http://localhost:5000/api/users/forgot-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccessMessage(
+          "New verification code sent! Please check your email."
+        );
+        setResendCooldown(60); // Set 60 seconds cooldown
+      } else {
+        setError(
+          data.message ||
+            "Failed to resend verification code. Please try again."
+        );
+      }
+    } catch (err) {
+      console.error("Error resending OTP:", err);
+      setError("Failed to resend verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: FormEvent) => {
@@ -175,8 +234,24 @@ const ResetPasswordPage: React.FC = () => {
                     className="pl-10 w-full border border-gray-300 rounded-md py-3 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900"
                     placeholder="Enter verification code"
                     required
+                    maxLength={6}
                   />
                 </div>
+              </div>
+
+              <div className="text-center text-sm">
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendCooldown > 0 || loading}
+                  className={`text-blue-600 hover:text-blue-500 ${
+                    resendCooldown > 0 ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {resendCooldown > 0
+                    ? `Resend code in ${resendCooldown}s`
+                    : "Didn't receive a code? Resend"}
+                </button>
               </div>
 
               <div>
@@ -298,7 +373,7 @@ const ResetPasswordPage: React.FC = () => {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      Resetting...
+                      Resetting Password...
                     </span>
                   ) : (
                     "Reset Password"

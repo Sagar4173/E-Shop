@@ -68,13 +68,21 @@ export const register = async (userData: RegisterData) => {
 };
 
 // Login a user
-export const login = async (credentials: LoginData) => {
+export const login = async (
+  credentials: LoginData,
+  rememberMe: boolean = false
+) => {
   try {
     const response = await api.post("/users/login", credentials);
     if (response.data.token) {
-      localStorage.setItem("token", response.data.token);
+      // Use either localStorage (remember me) or sessionStorage (session only)
+      const storage = rememberMe ? localStorage : sessionStorage;
+
+      // Store token in the appropriate storage
+      storage.setItem("token", response.data.token);
+
       // Store complete user data
-      localStorage.setItem(
+      storage.setItem(
         "user",
         JSON.stringify({
           _id: response.data._id,
@@ -108,9 +116,11 @@ export const logout = () => {
   // Get current user before we clear it
   const currentUser = getCurrentUser();
 
-  // Standard logout clearing token and user data
+  // Standard logout clearing token and user data from both storage types
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
 
   // Dispatch storage event to notify other components about the logout
   window.dispatchEvent(new Event("storage"));
@@ -133,20 +143,30 @@ export const logout = () => {
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
-  return localStorage.getItem("token") !== null;
+  return (
+    localStorage.getItem("token") !== null ||
+    sessionStorage.getItem("token") !== null
+  );
 };
 
 // Get current user
 export const getCurrentUser = (): User | null => {
   try {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
+    // Check both storage locations
+    let userStr = localStorage.getItem("user");
+    if (!userStr) {
+      userStr = sessionStorage.getItem("user");
+      if (!userStr) return null;
+    }
+
     return JSON.parse(userStr);
   } catch (error) {
     // If there's an error parsing the JSON, clear the invalid data
     console.error("Error parsing user data:", error);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     return null;
   }
 };

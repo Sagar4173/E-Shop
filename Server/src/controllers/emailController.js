@@ -259,6 +259,37 @@ const emailTemplates = {
     `;
   },
 
+  passwordResetOtp: (name, otp) => {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h1>Password Reset Verification</h1>
+        </div>
+        
+        <div style="padding: 20px;">
+          <p>Hello ${name},</p>
+          <p>You requested to reset your password on E-Commerce Platform. Please use the verification code below to complete the process.</p>
+          
+          <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+            <h2 style="margin: 0; color: #333; letter-spacing: 5px;">${otp}</h2>
+          </div>
+          
+          <p>Enter this verification code in the password reset page to continue setting a new password. This code will expire in 30 minutes.</p>
+          
+          <p>If you did not request to reset your password, please ignore this email or contact our support team.</p>
+          
+          <div style="margin-top: 30px;">
+            <p>If you have any questions, please contact our customer support at support@ecommerce.com</p>
+          </div>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+          <p>© 2025 E-Commerce Platform. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+  },
+
   welcome: (name) => {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -797,9 +828,7 @@ exports.sendPasswordResetEmail = async (req, res) => {
       });
     }
 
-    const resetLink = `${
-      process.env.CLIENT_URL || "http://localhost:3000"
-    }/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
     const emailContent = emailTemplates.passwordReset(resetLink);
 
     const result = await sendEmail(
@@ -811,6 +840,37 @@ exports.sendPasswordResetEmail = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("Error sending password reset email:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending email",
+    });
+  }
+};
+
+// @desc    Send password reset OTP email
+// @route   POST /api/emails/password-reset-otp
+// @access  Public
+exports.sendPasswordResetOtpEmail = async (req, res) => {
+  try {
+    const { email, name, otp } = req.body;
+
+    if (!email || !name || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const emailContent = emailTemplates.passwordResetOtp(name, otp);
+    const result = await sendEmail(
+      email,
+      "Password Reset Verification Code",
+      emailContent
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error sending password reset OTP email:", error);
     res.status(500).json({
       success: false,
       message: "Error sending email",

@@ -24,7 +24,7 @@ const ForgotPasswordPage: React.FC = () => {
         response.message || "Verification code sent to your email."
       );
 
-      // Redirect to reset password page with email
+      // Redirect to reset password page with email after a brief delay
       setTimeout(() => {
         navigate(`/reset-password?email=${encodeURIComponent(email)}`);
       }, 2000);
@@ -62,6 +62,9 @@ const ForgotPasswordPage: React.FC = () => {
             <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md">
               <p className="font-medium">Success</p>
               <p>{successMessage}</p>
+              <p className="mt-2 text-sm">
+                Redirecting to verification page...
+              </p>
             </div>
           )}
 
@@ -88,6 +91,9 @@ const ForgotPasswordPage: React.FC = () => {
                   required
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Enter the email address you used to create your account
+              </p>
             </div>
 
             <div>
