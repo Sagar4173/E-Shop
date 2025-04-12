@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import { register } from "../../services/authService";
+import { sendWelcomeEmail } from "../../services/email/emailService";
 
 interface RegisterFormData {
   name: string;
@@ -49,11 +50,18 @@ const RegisterPage = () => {
     setError(null);
 
     try {
-      await register({
+      // Register the user
+      const userData = await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
+
+      // Send welcome email
+      await sendWelcomeEmail(formData.email, formData.name).catch((err) =>
+        console.error("Welcome email could not be sent:", err)
+      );
+
       navigate("/login", { state: { registered: true } });
     } catch (err) {
       setError(

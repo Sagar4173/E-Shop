@@ -8,6 +8,7 @@ import {
   FaPaperPlane,
   FaUser,
 } from "react-icons/fa";
+import { sendContactFormConfirmation } from "../../services/email/emailService";
 
 interface ContactFormData {
   name: string;
@@ -46,11 +47,12 @@ const ContactPage: React.FC = () => {
     setError(null);
 
     try {
-      // In a real app, this would submit to your backend API
-      // await sendContactForm(formData);
-
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Send contact form submission and confirmation email
+      await sendContactFormConfirmation(
+        formData.email,
+        formData.name,
+        formData.subject
+      );
 
       // Show success message
       setSubmitted(true);

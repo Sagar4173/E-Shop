@@ -91,9 +91,41 @@ export const getAllOrders = async () => {
 };
 
 // Admin: Update order status
-export const updateOrderStatus = async (id: string, status: string) => {
+export const updateOrderStatus = async (
+  id: string,
+  status: string,
+  additionalData?: {
+    trackingNumber?: string;
+    note?: string;
+  }
+) => {
   try {
-    const response = await api.put(`/orders/${id}/status`, { status });
+    const response = await api.put(`/orders/${id}/status`, {
+      status,
+      ...additionalData,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Admin: Add tracking number to an order
+export const addTrackingNumber = async (id: string, trackingNumber: string) => {
+  try {
+    const response = await api.put(`/orders/${id}/tracking`, {
+      trackingNumber,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get order status history
+export const getOrderStatusHistory = async (id: string) => {
+  try {
+    const response = await api.get(`/orders/${id}/status-history`);
     return response.data;
   } catch (error) {
     throw error;

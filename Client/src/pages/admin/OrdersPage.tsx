@@ -8,6 +8,7 @@ import {
   FaBoxOpen,
   FaUsers,
   FaExchangeAlt,
+  FaShippingFast,
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import {
@@ -16,6 +17,10 @@ import {
   logout,
 } from "../../services/authService";
 import { getAllOrders, updateOrderStatus } from "../../services/orderService";
+import {
+  sendOrderStatusUpdateEmail,
+  sendShippingNotification,
+} from "../../services/email/emailService";
 import { format } from "date-fns";
 
 interface Order {
@@ -29,6 +34,7 @@ interface Order {
   isPaid: boolean;
   paidAt: string;
   status: string;
+  trackingNumber?: string;
   deliveredAt: string;
   orderItems: Array<{
     name: string;
@@ -44,6 +50,10 @@ const AdminOrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [ordersPerPage] = useState<number>(10);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState<string>("");
+  const [statusNote, setStatusNote] = useState<string>("");
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if user is logged in and is an admin
@@ -101,16 +111,82 @@ const AdminOrdersPage = () => {
     }
   };
 
+  const openStatusModal = (order: Order) => {
+    setSelectedOrder(order);
+    setTrackingNumber(order.trackingNumber || "");
+    setStatusNote("");
+    setShowStatusModal(true);
+  };
+
+  const closeStatusModal = () => {
+    setSelectedOrder(null);
+    setTrackingNumber("");
+    setStatusNote("");
+    setShowStatusModal(false);
+  };
+
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      await updateOrderStatus(orderId, newStatus);
+      // If it's a direct change from the dropdown (no modal)
+      if (!selectedOrder) {
+        // Update order status in database
+        await updateOrderStatus(orderId, newStatus);
+
+        // Send email notification about status change
+        await sendOrderStatusUpdateEmail(orderId, newStatus);
+
+        // Update the order in the local state
+        setOrders(
+          orders.map((order) =>
+            order._id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+    }
+  };
+
+  const handleStatusSubmit = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      const newStatus = selectedOrder.status;
+      const orderId = selectedOrder._id;
+      const data: any = {
+        status: newStatus,
+        note: statusNote,
+      };
+
+      // Add tracking number for shipped status
+      if (newStatus === "shipped" && trackingNumber) {
+        data.trackingNumber = trackingNumber;
+      }
+
+      // Update order status in database
+      await updateOrderStatus(orderId, newStatus, data);
+
+      // Send appropriate notification
+      if (newStatus === "shipped" && trackingNumber) {
+        await sendShippingNotification(orderId, trackingNumber, statusNote);
+      } else {
+        await sendOrderStatusUpdateEmail(orderId, newStatus, statusNote);
+      }
 
       // Update the order in the local state
       setOrders(
         orders.map((order) =>
-          order._id === orderId ? { ...order, status: newStatus } : order
+          order._id === orderId
+            ? {
+                ...order,
+                status: newStatus,
+                trackingNumber: data.trackingNumber,
+              }
+            : order
         )
       );
+
+      closeStatusModal();
     } catch (error) {
       console.error("Error updating order status:", error);
     }
@@ -135,6 +211,83 @@ const AdminOrdersPage = () => {
 
   return (
     <div className="bg-gray-100 min-h-screen">
+      {/* Status Update Modal */}
+      {showStatusModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              Update Order Status: #
+              {selectedOrder._id
+                .substring(selectedOrder._id.length - 6)
+                .toUpperCase()}
+            </h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                className={`w-full border rounded-md py-2 px-3 ${getStatusClass(
+                  selectedOrder.status
+                )}`}
+                value={selectedOrder.status}
+                onChange={(e) =>
+                  setSelectedOrder({ ...selectedOrder, status: e.target.value })
+                }
+              >
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            {selectedOrder.status === "shipped" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tracking Number
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md py-2 px-3"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Add tracking number"
+                />
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Note (Optional)
+              </label>
+              <textarea
+                className="w-full border border-gray-300 rounded-md py-2 px-3"
+                value={statusNote}
+                onChange={(e) => setStatusNote(e.target.value)}
+                placeholder="Add a note to the customer"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeStatusModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStatusSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -293,6 +446,12 @@ const AdminOrdersPage = () => {
                                   .substring(order._id.length - 6)
                                   .toUpperCase()}
                               </div>
+                              {order.trackingNumber && (
+                                <div className="text-xs text-gray-500 flex items-center">
+                                  <FaShippingFast className="mr-1" />
+                                  {order.trackingNumber}
+                                </div>
+                              )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
@@ -308,23 +467,25 @@ const AdminOrdersPage = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              ${order.totalAmount.toFixed(2)}
+                              ₹{order.totalAmount.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <select
-                                className={`text-sm font-medium px-2 py-1 rounded ${getStatusClass(
-                                  order.status
-                                )}`}
-                                value={order.status}
-                                onChange={(e) =>
-                                  handleStatusChange(order._id, e.target.value)
-                                }
-                              >
-                                <option value="processing">Processing</option>
-                                <option value="shipped">Shipped</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
+                              <div className="flex flex-col">
+                                <span
+                                  className={`text-sm font-medium px-2 py-1 rounded mb-1 text-center ${getStatusClass(
+                                    order.status
+                                  )}`}
+                                >
+                                  {order.status.charAt(0).toUpperCase() +
+                                    order.status.slice(1)}
+                                </span>
+                                <button
+                                  onClick={() => openStatusModal(order)}
+                                  className="text-xs text-blue-600 hover:text-blue-800"
+                                >
+                                  Update Status
+                                </button>
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <Link

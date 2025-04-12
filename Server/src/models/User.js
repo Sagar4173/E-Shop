@@ -24,6 +24,17 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    // OTP for email verification
+    verificationOtp: {
+      type: String,
+    },
+    verificationOtpExpires: {
+      type: Date,
+    },
     phoneNumber: {
       type: String,
       trim: true,
@@ -46,6 +57,20 @@ const userSchema = new mongoose.Schema(
       state: { type: String },
       postalCode: { type: String },
       country: { type: String },
+    },
+    // OTP fields for password reset
+    resetPasswordOtp: {
+      type: String,
+    },
+    resetPasswordOtpExpires: {
+      type: Date,
+    },
+    // OTP fields for two-factor authentication
+    twoFactorOtp: {
+      type: String,
+    },
+    twoFactorOtpExpires: {
+      type: Date,
     },
   },
   { timestamps: true }

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaCheckCircle, FaFileInvoice, FaFileDownload } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaFileInvoice,
+  FaFileDownload,
+  FaShippingFast,
+} from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import { getOrderById } from "../../services/orderService";
 import { downloadInvoice } from "../../utils/invoiceGenerator";
@@ -97,8 +102,18 @@ const OrderConfirmationPage = () => {
       <div className="max-w-2xl mx-auto text-center py-12">
         <FaCheckCircle className="mx-auto text-green-500 text-5xl mb-6" />
         <h1 className="text-3xl font-bold mb-3">Thank You for Your Order!</h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-gray-600 mb-2">
           Your order has been successfully placed and is being processed.
+        </p>
+        <p className="text-gray-600 mb-8">
+          A confirmation email has been sent to{" "}
+          <span className="font-medium">
+            {order.user?.email ||
+              order.paymentResult?.email_address ||
+              order.shippingAddress?.email ||
+              "your email address"}
+          </span>
+          .
         </p>
 
         <div className="bg-white shadow-sm rounded-lg p-6 mb-8">
@@ -130,6 +145,15 @@ const OrderConfirmationPage = () => {
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </span>
             </div>
+            {order.trackingNumber && (
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-600">Tracking Number:</span>
+                <span className="font-medium text-blue-600 flex items-center">
+                  <FaShippingFast className="mr-1" />
+                  {order.trackingNumber}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between border-b pb-2">
               <span className="text-gray-600">Payment:</span>
               <span className="font-medium">

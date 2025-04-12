@@ -190,3 +190,78 @@ export const updatePassword = async (passwords: {
     throw error;
   }
 };
+
+// Request password reset email with OTP
+export const requestPasswordReset = async (email: string) => {
+  try {
+    const response = await api.post("/users/forgot-password", { email });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Verify OTP code
+export const verifyOTP = async (
+  email: string,
+  otp: string,
+  purpose: "password-reset" | "2fa"
+) => {
+  try {
+    const response = await api.post("/users/verify-otp", {
+      email,
+      otp,
+      purpose,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Reset password with OTP verification
+export const resetPassword = async (
+  email: string,
+  otp: string,
+  newPassword: string
+) => {
+  try {
+    const response = await api.post("/users/reset-password", {
+      email,
+      otp,
+      newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Request 2FA OTP
+export const request2FAOTP = async () => {
+  try {
+    const response = await api.post("/users/send-2fa");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Verify 2FA OTP and complete login
+export const verify2FA = async (email: string, otp: string) => {
+  try {
+    const response = await api.post("/users/verify-2fa", {
+      email,
+      otp,
+    });
+
+    if (response.data.token) {
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data));
+    }
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
