@@ -227,6 +227,38 @@ const emailTemplates = {
     `;
   },
 
+  verificationOtp: (name, otp) => {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h1>Verify Your Email Address</h1>
+        </div>
+        
+        <div style="padding: 20px;">
+          <p>Hello ${name},</p>
+          <p>Thank you for signing up with E-Commerce Platform. To complete your registration, please verify your email address.</p>
+          
+          <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+            <h2 style="margin: 0; color: #333; letter-spacing: 5px;">${otp}</h2>
+          </div>
+          
+          <p>Enter this verification code in the application to verify your email address. This code will expire in 1 hour.</p>
+          
+          <p>If you did not request this verification code, please ignore this email.</p>
+          
+          <div style="margin-top: 30px;">
+            <p>If you have any questions, please contact our customer support at support@ecommerce.com</p>
+            <p>Thank you for choosing E-Commerce Platform!</p>
+          </div>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+          <p>© 2025 E-Commerce Platform. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+  },
+
   welcome: (name) => {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -859,6 +891,37 @@ exports.sendLowInventoryAlert = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("Error sending inventory alert:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending email",
+    });
+  }
+};
+
+// @desc    Send verification OTP email
+// @route   POST /api/emails/verification-otp
+// @access  Public
+exports.sendVerificationOtpEmail = async (req, res) => {
+  try {
+    const { email, name, otp } = req.body;
+
+    if (!email || !name || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const emailContent = emailTemplates.verificationOtp(name, otp);
+    const result = await sendEmail(
+      email,
+      "Verify Your Email Address",
+      emailContent
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error sending verification OTP email:", error);
     res.status(500).json({
       success: false,
       message: "Error sending email",

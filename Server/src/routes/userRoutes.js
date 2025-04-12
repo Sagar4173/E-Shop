@@ -13,6 +13,8 @@ const {
   resetPassword,
   send2FA,
   verify2FA,
+  verifyEmail,
+  resendVerification,
 } = require("../controllers/userController");
 const { protect, admin } = require("../middlewares/authMiddleware");
 
@@ -23,6 +25,8 @@ router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 router.post("/verify-2fa", verify2FA);
+router.post("/verify-email", verifyEmail);
+router.post("/resend-verification", resendVerification);
 
 // Protected routes
 router.get("/profile", protect, getUserProfile);

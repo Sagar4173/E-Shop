@@ -2,7 +2,7 @@ const User = require("../models/User");
 const { generateToken } = require("../middlewares/authMiddleware");
 const crypto = require("crypto");
 
-// @desc    Register a new user
+// @desc    Start user registration by sending OTP
 // @route   POST /api/users/register
 // @access  Public
 exports.registerUser = async (req, res) => {
@@ -21,41 +21,68 @@ exports.registerUser = async (req, res) => {
     // Hash the OTP before storing
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Create new user
-    const user = await User.create({
+    // Store the registration data and OTP in session
+    req.session = req.session || {};
+    req.session.pendingRegistration = {
       name,
       email,
       password,
-      lastLogin: new Date(),
-      notificationPreferences: {
-        email: true,
-        push: false,
-        sms: false,
-      },
-      isVerified: false,
       verificationOtp: hashedOtp,
       verificationOtpExpires: Date.now() + 60 * 60 * 1000, // 1 hour
-    });
+    };
 
-    if (user) {
-      // Send verification email with OTP
-      // TODO: Replace with actual email sending implementation
-      console.log(`Email verification OTP for ${email}: ${otp}`);
+    // Send verification email with OTP
+    try {
+      // Call the email service to send verification OTP
+      const emailResponse = await fetch(
+        `${
+          process.env.BASE_URL || "http://localhost:5000"
+        }/api/emails/verification-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            name,
+            otp,
+          }),
+        }
+      );
 
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isVerified: user.isVerified,
-        message:
-          "Registration successful. Please verify your email to continue.",
-        // Include OTP in response for testing purposes only (remove in production)
-        otp: process.env.NODE_ENV === "development" ? otp : undefined,
-      });
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
+      const emailResult = await emailResponse.json();
+
+      if (!emailResult.success) {
+        console.error(
+          "Failed to send verification email:",
+          emailResult.message
+        );
+      }
+    } catch (error) {
+      console.error("Error sending verification email:", error);
     }
+
+    // For Redis session implementation, we should save the session here
+
+    // Store the registration data temporarily (Redis would be better)
+    global.pendingRegistrations = global.pendingRegistrations || {};
+    global.pendingRegistrations[email] = {
+      name,
+      email,
+      password,
+      verificationOtp: hashedOtp,
+      verificationOtpExpires: Date.now() + 60 * 60 * 1000, // 1 hour
+    };
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Verification code sent to your email. Please verify to complete registration.",
+      email: email,
+      // Include OTP in response for testing purposes only (remove in production)
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -551,20 +578,21 @@ exports.verify2FA = async (req, res) => {
   }
 };
 
-// @desc    Verify email with OTP
+// @desc    Verify email with OTP and complete registration
 // @route   POST /api/users/verify-email
 // @access  Public
 exports.verifyEmail = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Get pending registration data from the global object (in production, use Redis or a proper session store)
+    const pendingRegistration = global.pendingRegistrations?.[email];
 
-    if (!user) {
+    if (!pendingRegistration) {
       return res.status(400).json({
         success: false,
-        message: "Invalid verification details",
+        message:
+          "No pending registration found or registration expired. Please register again.",
       });
     }
 
@@ -573,8 +601,8 @@ exports.verifyEmail = async (req, res) => {
 
     // Check if OTP is valid and not expired
     if (
-      user.verificationOtp !== hashedOtp ||
-      user.verificationOtpExpires < Date.now()
+      pendingRegistration.verificationOtp !== hashedOtp ||
+      pendingRegistration.verificationOtpExpires < Date.now()
     ) {
       return res.status(400).json({
         success: false,
@@ -582,32 +610,185 @@ exports.verifyEmail = async (req, res) => {
       });
     }
 
-    // Mark user as verified
-    user.isVerified = true;
-
-    // Clear OTP data
-    user.verificationOtp = undefined;
-    user.verificationOtpExpires = undefined;
-
-    await user.save();
-
-    res.json({
-      success: true,
-      message: "Email verified successfully",
-      token: generateToken(user._id),
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isVerified: user.isVerified,
+    // Create the new user now that verification is successful
+    const user = await User.create({
+      name: pendingRegistration.name,
+      email: pendingRegistration.email,
+      password: pendingRegistration.password,
+      lastLogin: new Date(),
+      notificationPreferences: {
+        email: true,
+        push: false,
+        sms: false,
       },
+      isVerified: true, // User is verified from the start
     });
+
+    // Clean up the pending registration
+    delete global.pendingRegistrations[email];
+
+    if (user) {
+      // Send welcome email
+      try {
+        // Call the email service to send welcome email
+        const emailResponse = await fetch(
+          `${
+            process.env.BASE_URL || "http://localhost:5000"
+          }/api/emails/welcome`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              name: user.name,
+            }),
+          }
+        );
+
+        const emailResult = await emailResponse.json();
+
+        if (!emailResult.success) {
+          console.error("Failed to send welcome email:", emailResult.message);
+        }
+      } catch (error) {
+        console.error("Error sending welcome email:", error);
+      }
+
+      // Generate authentication token
+      const token = generateToken(user._id);
+
+      res.json({
+        success: true,
+        message: "Registration completed successfully!",
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+          isVerified: user.isVerified,
+        },
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Failed to create user account",
+      });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
       message: "An error occurred during verification",
+    });
+  }
+};
+
+// @desc    Resend email verification OTP
+// @route   POST /api/users/resend-verification
+// @access  Public
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Check if there's a pending registration for this email
+    const pendingRegistration = global.pendingRegistrations?.[email];
+
+    // If there's no pending registration, check if there's already a user with this email
+    if (!pendingRegistration) {
+      const user = await User.findOne({ email });
+
+      // If there's no pending registration and no existing user, it's an invalid request
+      if (!user) {
+        // For security reasons, don't reveal if email exists or not
+        return res.json({
+          success: true,
+          message:
+            "If your email is registered, you will receive a verification code shortly.",
+        });
+      }
+
+      // If user exists but is already verified, no need to send verification
+      if (user.isVerified) {
+        return res.json({
+          success: false,
+          message: "Email is already verified. Please login instead.",
+        });
+      }
+
+      // This shouldn't happen with the new flow (users created only after verification),
+      // but keeping it for backwards compatibility
+      return res.status(400).json({
+        success: false,
+        message: "No pending registration found. Please register again.",
+      });
+    }
+
+    // Generate a new OTP for email verification
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Hash the OTP before storing
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    // Update pending registration with new OTP
+    pendingRegistration.verificationOtp = hashedOtp;
+    pendingRegistration.verificationOtpExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+
+    // Update the global object
+    global.pendingRegistrations[email] = pendingRegistration;
+
+    // Send verification email with OTP
+    try {
+      // Call the email service to send verification OTP
+      const emailResponse = await fetch(
+        `${
+          process.env.BASE_URL || "http://localhost:5000"
+        }/api/emails/verification-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            name: pendingRegistration.name,
+            otp,
+          }),
+        }
+      );
+
+      const emailResult = await emailResponse.json();
+
+      if (!emailResult.success) {
+        console.error(
+          "Failed to send verification email:",
+          emailResult.message
+        );
+      }
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+    }
+
+    res.json({
+      success: true,
+      message: "Verification code sent to your email",
+      email: email,
+      // Include OTP in response for testing purposes only (remove in production)
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while resending verification code",
     });
   }
 };

@@ -286,6 +286,34 @@ export const sendOtpEmail = async (
 };
 
 /**
+ * Send email verification OTP
+ * @param email User email
+ * @param name User name
+ * @param otp Verification code
+ * @returns Promise with email response
+ */
+export const sendVerificationOtpEmail = async (
+  email: string,
+  name: string,
+  otp: string
+): Promise<EmailResponse> => {
+  try {
+    const response = await api.post("/emails/verification-otp", {
+      email,
+      name,
+      otp,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to send verification email:", error);
+    return {
+      success: false,
+      message: "Could not send verification email",
+    };
+  }
+};
+
+/**
  * Verify OTP code
  * @param email User email
  * @param otp One-time password code

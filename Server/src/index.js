@@ -11,6 +11,7 @@ const userRoutes = require("./routes/userRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const emailRoutes = require("./routes/emailRoutes");
 
 // Initialize Express app
 const app = express();
@@ -48,6 +49,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/emails", emailRoutes);
 
 // Health check route
 app.get("/", (req, res) => {

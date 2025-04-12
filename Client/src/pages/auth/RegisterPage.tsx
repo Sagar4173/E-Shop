@@ -1,21 +1,19 @@
 import { useState, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  FaUser,
-  FaEnvelope,
-  FaLock,
-  FaGoogle,
-  FaFacebook,
-} from "react-icons/fa";
+import { FaUser, FaEnvelope, FaLock, FaShieldAlt } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
-import { register } from "../../services/authService";
-import { sendWelcomeEmail } from "../../services/email/emailService";
+import api from "../../services/api";
+import { sendVerificationOtpEmail } from "../../services/email/emailService";
 
 interface RegisterFormData {
   name: string;
   email: string;
   password: string;
   confirmPassword: string;
+}
+
+interface VerificationFormData {
+  otp: string;
 }
 
 const RegisterPage = () => {
@@ -25,8 +23,13 @@ const RegisterPage = () => {
     password: "",
     confirmPassword: "",
   });
+  const [verificationData, setVerificationData] =
+    useState<VerificationFormData>({
+      otp: "",
+    });
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<"register" | "verify">("register");
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +38,38 @@ const RegisterPage = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleVerificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setVerificationData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleResendOtp = async () => {
+    if (!formData.email) return;
+
+    setLoading(true);
+    try {
+      const response = await api.post("/users/resend-verification", {
+        email: formData.email,
+      });
+
+      if (response.data.success) {
+        alert("Verification code resent to your email");
+      } else {
+        setError(response.data.message || "Failed to resend verification code");
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to resend verification code. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -50,29 +85,174 @@ const RegisterPage = () => {
     setError(null);
 
     try {
-      // Register the user
-      const userData = await register({
+      // Send initial registration request (this doesn't create an account yet, just sends OTP)
+      const response = await api.post("/users/register", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
 
-      // Send welcome email
-      await sendWelcomeEmail(formData.email, formData.name).catch((err) =>
-        console.error("Welcome email could not be sent:", err)
-      );
-
-      navigate("/login", { state: { registered: true } });
-    } catch (err) {
+      if (response.data.success) {
+        // Move to verification step
+        setStep("verify");
+      } else {
+        throw new Error(response.data.message || "Registration failed");
+      }
+    } catch (err: any) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again."
+        err.response?.data?.message ||
+          err.message ||
+          "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifySubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Verify the OTP code and complete account creation
+      const response = await api.post("/users/verify-email", {
+        email: formData.email,
+        otp: verificationData.otp,
+      });
+
+      if (response.data.success) {
+        // Navigate to login page with success message
+        navigate("/login", { state: { registered: true, verified: true } });
+      } else {
+        setError(response.data.message || "Invalid verification code");
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Verification failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === "verify") {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden p-8 mb-6">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Verify Your Email
+              </h1>
+              <p className="text-gray-600">
+                We've sent a verification code to {formData.email}
+              </p>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md">
+                <p className="font-medium">Oops!</p>
+                <p>{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleVerifySubmit} className="space-y-6">
+              <div>
+                <label
+                  htmlFor="otp"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Verification Code
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FaShieldAlt className="text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    id="otp"
+                    name="otp"
+                    value={verificationData.otp}
+                    onChange={handleVerificationChange}
+                    className="pl-10 w-full border border-gray-300 rounded-md py-3 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900"
+                    placeholder="Enter 6-digit code"
+                    required
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-md font-medium transition-colors flex justify-center items-center"
+                >
+                  {loading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify & Complete Registration"
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <div className="text-center mt-4">
+              <button
+                onClick={handleResendOtp}
+                className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                disabled={loading}
+              >
+                Didn't receive the code? Resend
+              </button>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-gray-600">
+              <button
+                onClick={() => setStep("register")}
+                className="text-indigo-600 hover:text-indigo-500 font-medium"
+              >
+                Go Back
+              </button>{" "}
+              or{" "}
+              <Link
+                to="/login"
+                className="text-indigo-600 hover:text-indigo-500 font-medium"
+              >
+                Sign in instead
+              </Link>
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -253,10 +433,10 @@ const RegisterPage = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Creating Account...
+                    Sending verification code...
                   </>
                 ) : (
-                  "Create Account"
+                  "Continue"
                 )}
               </button>
             </div>
