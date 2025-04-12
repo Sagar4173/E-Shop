@@ -34,14 +34,117 @@ app.use(
 // Static folder for uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI, {
+// Log environment variables (excluding sensitive info)
+console.log("Environment variables:", {
+  NODE_ENV: process.env.NODE_ENV,
+  STRIPE_KEY_EXISTS: !!process.env.STRIPE_SECRET_KEY,
+  STRIPE_KEY_LENGTH: process.env.STRIPE_SECRET_KEY?.length,
+});
+
+// Enhanced MongoDB connection with retry and DNS fallback logic
+const connectWithRetry = (retryCount = 0, maxRetries = 5) => {
+  console.log(`MongoDB connection attempt ${retryCount + 1}/${maxRetries + 1}`);
+
+  const connectionOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-  })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+    serverSelectionTimeoutMS: 15000, // Increased from 10000
+    socketTimeoutMS: 60000, // Increased from 45000
+    family: 4, // Force IPv4
+    maxPoolSize: 50,
+    retryWrites: true,
+    connectTimeoutMS: 30000, // Increase connection timeout
+  };
+
+  return mongoose
+    .connect(process.env.MONGODB_URI, connectionOptions)
+    .then(() => {
+      console.log("Connected to MongoDB successfully");
+    })
+    .catch((err) => {
+      console.error("MongoDB connection error:", err);
+
+      // Check if we hit the DNS resolution error
+      if (
+        (err.code === "ETIMEOUT" || err.code === "ENOTFOUND") &&
+        (err.syscall === "queryTxt" || err.syscall === "getaddrinfo")
+      ) {
+        console.log(
+          "DNS resolution issue detected. Trying alternative approach..."
+        );
+
+        // Try to use a direct connection method if we're using SRV format
+        if (process.env.MONGODB_URI.includes("mongodb+srv://")) {
+          try {
+            // Extract parts from the original connection string
+            const uriWithoutProtocol = process.env.MONGODB_URI.replace(
+              "mongodb+srv://",
+              ""
+            );
+            const [credentials, rest] = uriWithoutProtocol.split("@");
+            const [host, dbPath] = rest.split("/");
+
+            // Create a direct connection string using the standard MongoDB port 27017
+            // This bypasses the SRV lookup
+            const directUri = `mongodb://${credentials}@${
+              host.split(".")[0]
+            }.${host.split(".").slice(1).join(".")}:27017/${dbPath}`;
+            console.log("Attempting direct connection fallback...");
+
+            // Try the direct connection after a short delay
+            setTimeout(() => {
+              mongoose
+                .connect(directUri, { ...connectionOptions, ssl: true })
+                .then(() =>
+                  console.log("Connected to MongoDB using direct connection")
+                )
+                .catch((directErr) =>
+                  handleRetry(directErr, retryCount, maxRetries)
+                );
+            }, 2000);
+            return;
+          } catch (parseErr) {
+            console.error(
+              "Failed to parse connection string for direct connection:",
+              parseErr
+            );
+          }
+        }
+      }
+
+      // Handle normal retry logic
+      handleRetry(err, retryCount, maxRetries);
+    });
+};
+
+// Helper function to handle retry logic
+const handleRetry = (err, retryCount, maxRetries) => {
+  if (retryCount < maxRetries) {
+    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff, max 30s
+    console.log(
+      `Retrying MongoDB connection in ${retryDelay / 1000} seconds... (${
+        retryCount + 1
+      }/${maxRetries})`
+    );
+    setTimeout(() => {
+      connectWithRetry(retryCount + 1, maxRetries);
+    }, retryDelay);
+  } else {
+    console.error(
+      `Failed to connect to MongoDB after ${
+        maxRetries + 1
+      } attempts. Service may be unavailable.`
+    );
+    console.log(
+      "Server will continue to run, but MongoDB functionality will not work."
+    );
+    // Don't exit - allow the server to run without DB connection
+    // For production, you might want to add a health check endpoint that reports DB status
+  }
+};
+
+// Start the connection process
+connectWithRetry();
 
 // Routes
 app.use("/api/products", productRoutes);

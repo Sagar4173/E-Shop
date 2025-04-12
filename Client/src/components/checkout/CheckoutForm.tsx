@@ -1,4 +1,4 @@
-import { useState, FormEvent, useContext } from "react";
+import { useState, FormEvent, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CartContext } from "../../context/CartContext";
@@ -14,7 +14,18 @@ import {
   FaCcDiscover,
 } from "react-icons/fa";
 
-const CheckoutForm = () => {
+interface CheckoutFormProps {
+  isGuestCheckout?: boolean;
+  guestInfo?: {
+    name: string;
+    email: string;
+  };
+}
+
+const CheckoutForm = ({
+  isGuestCheckout = false,
+  guestInfo = { name: "", email: "" },
+}: CheckoutFormProps) => {
   const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
@@ -46,6 +57,17 @@ const CheckoutForm = () => {
       country: "India",
     },
   });
+
+  // Pre-fill guest information if available
+  useEffect(() => {
+    if (isGuestCheckout && guestInfo) {
+      setFormData((prevData) => ({
+        ...prevData,
+        name: guestInfo.name || prevData.name,
+        email: guestInfo.email || prevData.email,
+      }));
+    }
+  }, [isGuestCheckout, guestInfo]);
 
   const validateAddress = () => {
     // Basic validation
@@ -190,6 +212,7 @@ const CheckoutForm = () => {
         taxAmount,
         shippingAmount,
         totalAmount,
+        isGuestCheckout, // Flag to indicate if this is a guest order
       };
 
       // Create the order in our system

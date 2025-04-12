@@ -8,6 +8,7 @@ console.log("Environment variables:", {
 });
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripePublishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
 
 // Variable to hold the Stripe instance
 let stripe;
@@ -21,7 +22,17 @@ if (!stripeSecretKey) {
   stripe = require("stripe")(stripeSecretKey);
 }
 
-// @desc    Create payment intent for Stripe
+// @desc    Get Stripe publishable key
+// @route   GET /api/payments/config
+// @access  Public
+exports.getConfig = async (req, res) => {
+  res.json({
+    publishableKey: stripePublishableKey || "pk_test_placeholder",
+    isTestMode: !stripePublishableKey || process.env.NODE_ENV !== "production",
+  });
+};
+
+// @desc    Create payment intent for Stripe (for authenticated users)
 // @route   POST /api/payments/create-payment-intent
 // @access  Private
 exports.createPaymentIntent = async (req, res) => {
@@ -42,6 +53,52 @@ exports.createPaymentIntent = async (req, res) => {
       payment_method_types: [paymentMethodType],
       metadata: {
         userId: req.user._id.toString(),
+      },
+    });
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      id: paymentIntent.id,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create payment intent for guest checkout
+// @route   POST /api/payments/guest-payment-intent
+// @access  Public
+exports.createGuestPaymentIntent = async (req, res) => {
+  // Check if Stripe is initialized
+  if (!stripe) {
+    return res.status(500).json({
+      message: "Payment service is not available. Stripe API key is missing.",
+    });
+  }
+
+  try {
+    const {
+      amount,
+      currency = "usd",
+      paymentMethodType = "card",
+      guestInfo = {},
+    } = req.body;
+
+    // Add basic validation
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Valid amount is required" });
+    }
+
+    // Create a PaymentIntent with the order amount and currency
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe expects amount in cents
+      currency,
+      payment_method_types: [paymentMethodType],
+      metadata: {
+        isGuest: true,
+        guestEmail: guestInfo.email || "guest@example.com",
+        guestName: guestInfo.name || "Guest",
       },
     });
 

@@ -113,17 +113,62 @@ const ProfilePage = () => {
   } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [authChecked, setAuthChecked] = useState(false);
 
+  // First, check authentication status
   useEffect(() => {
-    // Check if user is logged in
-    if (!isAuthenticated()) {
-      navigate("/login", { state: { from: { pathname: "/account/profile" } } });
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
+        // Redirect to login if not authenticated
+        navigate("/login", {
+          state: { from: { pathname: "/account/profile" } },
+        });
+        return;
+      }
+
+      // Set current user from localStorage/sessionStorage as initial data
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        setFormData({
+          name: currentUser.name || "",
+          email: currentUser.email || "",
+          password: "",
+          confirmPassword: "",
+          address: currentUser.address || {
+            street: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "US",
+          },
+          enable2FA: currentUser.enable2FA || false,
+          phoneNumber: currentUser.phoneNumber || "",
+          notificationPreferences: currentUser.notificationPreferences || {
+            email: true,
+            push: false,
+            sms: false,
+          },
+        });
+      }
+
+      setAuthChecked(true);
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // Then fetch complete user data from API only if authenticated
+  useEffect(() => {
+    // Only proceed if authentication check has completed and user is authenticated
+    if (!authChecked || !isAuthenticated()) {
       return;
     }
 
     // Fetch complete user data from API
     const fetchUserData = async () => {
       try {
+        setLoading(true);
         const userData = await getUserProfile();
         setUser({
           _id: userData._id,
@@ -160,19 +205,43 @@ const ProfilePage = () => {
         });
 
         // Fetch user orders
-        const fetchedOrders = await getUserOrders(userData._id);
-        setOrders(fetchedOrders);
+        try {
+          const fetchedOrders = await getUserOrders(userData._id);
+          setOrders(fetchedOrders);
+        } catch (orderErr) {
+          console.error("Failed to fetch orders:", orderErr);
+        }
 
         // Fetch wishlist items
-        const fetchedWishlistItems = await getWishlistItems(userData._id);
-        setWishlistItems(fetchedWishlistItems);
+        try {
+          const fetchedWishlistItems = await getWishlistItems(userData._id);
+          setWishlistItems(fetchedWishlistItems);
+        } catch (wishlistErr) {
+          console.error("Failed to fetch wishlist:", wishlistErr);
+        }
       } catch (error) {
         console.error("Failed to fetch user data:", error);
+        // If API call fails due to expired token, redirect to login
+        if (
+          error instanceof Error &&
+          (error.message.includes("Not authorized") ||
+            error.message.includes("token"))
+        ) {
+          logout();
+          navigate("/login", {
+            state: {
+              from: { pathname: "/account/profile" },
+              message: "Your session has expired. Please log in again.",
+            },
+          });
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserData();
-  }, [navigate]);
+  }, [authChecked, navigate]);
 
   const handleLogout = () => {
     logout();
