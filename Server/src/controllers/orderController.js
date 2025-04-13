@@ -124,6 +124,46 @@ exports.updateOrderToPaid = async (req, res) => {
 
       const updatedOrder = await order.save();
 
+      // Send invoice email automatically when order is marked as paid
+      try {
+        // Determine recipient email from available sources
+        const recipientEmail =
+          order.paymentResult?.email_address ||
+          (order.user && typeof order.user !== "string"
+            ? order.user.email
+            : undefined) ||
+          order.shippingAddress.email;
+
+        if (recipientEmail) {
+          // Import axios for making HTTP requests
+          const axios = require("axios");
+
+          // Define the base URL for the API
+          const baseUrl =
+            process.env.BASE_URL ||
+            `http://localhost:${process.env.PORT || 5000}`;
+
+          // Call the email API to send the invoice
+          const emailResponse = await axios.post(
+            `${baseUrl}/api/emails/send-invoice`,
+            {
+              orderId: order._id,
+              recipientEmail: recipientEmail,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("Invoice email sent:", emailResponse.data.success);
+        }
+      } catch (emailError) {
+        // Log but don't stop the order update if email fails
+        console.error("Failed to send invoice email:", emailError.message);
+      }
+
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });

@@ -20,6 +20,7 @@ import OrderStatusTimeline from "../../components/orders/OrderStatusTimeline";
 import {
   getOrderById,
   getOrderStatusHistory,
+  getOrderReturns,
 } from "../../services/orderService";
 import {
   downloadInvoice,
@@ -32,6 +33,8 @@ const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
+  const [returnRequests, setReturnRequests] = useState<any[]>([]);
+  const [hasReturnRequest, setHasReturnRequest] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState<boolean>(false);
@@ -62,6 +65,19 @@ const OrderDetailPage: React.FC = () => {
         } catch (err: any) {
           console.error("Error fetching status history:", err);
           // Don't set error here, as we can still display the order without history
+        }
+
+        // Fetch return requests if they exist
+        try {
+          const returnsData = await getOrderReturns(id);
+          if (returnsData && returnsData.length > 0) {
+            setReturnRequests(returnsData);
+            setHasReturnRequest(true);
+          }
+        } catch (err: any) {
+          console.error("Error fetching return requests:", err);
+          // Don't set error here, return requests might not exist for this order
+          // This is expected for orders without return requests
         }
 
         setLoading(false);
@@ -333,7 +349,7 @@ const OrderDetailPage: React.FC = () => {
                 Not satisfied with your purchase? You have 30 days from delivery
                 to return most items in their original condition.
               </p>
-              {order.status === "delivered" && (
+              {order.status === "delivered" && !hasReturnRequest && (
                 <Link
                   to={`/account/orders/${order._id}/return`}
                   className="inline-block bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
@@ -341,7 +357,7 @@ const OrderDetailPage: React.FC = () => {
                   Start a Return
                 </Link>
               )}
-              {order.returnStatus === "pending" && (
+              {hasReturnRequest && (
                 <Link
                   to={`/account/orders/${order._id}/return-request`}
                   className="inline-block bg-gray-100 text-gray-800 py-2 px-4 rounded hover:bg-gray-200 mt-2 flex items-center"

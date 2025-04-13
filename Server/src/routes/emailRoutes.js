@@ -9,6 +9,7 @@ router.post("/password-reset", emailController.sendPasswordResetEmail);
 router.post("/password-reset-otp", emailController.sendPasswordResetOtpEmail);
 router.post("/contact-form", emailController.sendContactFormConfirmation);
 router.post("/verification-otp", emailController.sendVerificationOtpEmail);
+router.post("/send-invoice", emailController.sendInvoiceEmail);
 
 // Protected routes
 router.post(

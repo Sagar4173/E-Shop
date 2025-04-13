@@ -3,6 +3,10 @@ import autoTable from "jspdf-autotable";
 import { Order } from "../types";
 import { format } from "date-fns";
 
+// Base64 encoded logo - using a simple, valid base64 string
+const COMPANY_LOGO_BASE64 =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAADsQAAA7EB9YPtSQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAA9OSURBVHic7Z15cFTXfcc/v/de70m7QiAJSUjGMggQIMBgG9s4vrDj2I6TetL4kjiNM2k64zTjJm2SZtKZpJ12xp12Jk1dZ5Lxn43HdYJjsLFxjA0GjG3AAglJSEII3Uho71vt9vrHvoXQhaS3q6cR/D4zO7zvvXN+5/x+v7vn3PM75xcJBAKBQCAQCAQCgUAgEAgEAoFAIBAIBAKBQCAQCAQCgUAgEAgEAoFA8L8TWdSqpZiVpaOMKqgr5nrmG0VRkBBIKFgsNsxp5qmo85K9AaCurk6Z37Q437KaZ+DDhw/LudhzLFaLNC+CzyeKogACERkkkJCRJQlVyc12VVHsQI4BYFRUxca9wMX0dCzbDFBXV6dcvHjREm/+vXv3SpFIxDJbWZJkBlCQJYlQMPSBrJnJykZRFOrq6pTDhw/LkyMbYN68eZGcnJxJkxwVunr1qu348ePlRUVFwdLS0sB8jz4mk2nakTc0NGTr6em2OZ1Oc3FxcThdoQOBAIqiEA6HMRqNaDnsphb/+Z7jEWZUAMePHzc1NTU5btiwYU337t27j1tNQrS1tVkbGxttJSUlQZfLpZWUlISyMjMnL1dXW2BlJBIZu2sEbreb/v5+TCYTmZmZ2Gw2LBYLRqMxLfnHwVpWVhZOW9YpjImNjY5F/RnA4XBEDhw48Hl93A/qvGfOnHGuWbMmmJ+frwGYTCbnUmmJZkJbWxsBvx+f14vP5yMcDg9dCwaDBAIBIpEIiqKMRNzZs2fL77777iKLxSKbTCZMJhPJtPTgwYOVzz333FfOnTuX3dDQ4OztkbMAysvLeyoqKprr6+vTrgYyDQAhwGSer91u1yorK8Nz586NAJCdlTVj+cbGRlfla6+t7OjoWBoOh6XBwcGRa3a7nYyMDHJycsjJziYrK2tMBNjtdkpKSrBarcMTwgBU19S43nrrrV2BQGDRCy+8UH3ixImVxw4frgoGgxWyLIPFYpFlWVEUJaooCjH1vFFRFIdisSiyLCuKoqAoMkokEkFRZJRIJIISiWC1WliyZMnzaQXCFAzdRFL6R8AZ4Je6b1ufcLpVq1aFAZzO6SNg8HgA6OiIPpPnzJnDvNJSKisryXC5pneqh5iGfrpcLg2gsbHRSSwnHJt+7t69ezcDmwoLC32xS+9OlnXq33VSpoTB1CJ/MkVOp5P6+noWLlx4s9UxhtDksLJYLFe8Xm+t1+utVRSlvqioSItGo/L58+drwuFwzWRZja6ZAq/XO/L+woULlJaWUlpa+pHxeBwnssViyRj9frIEGUtEI9clADKdTnRdt6iqataG8z1ZlseFQVlZmb+8vNwPsHTp0r7x8megeV0bt43dxOaMpQFyZ5h2urYFg0ECgUAsGozDnRwfP6+84rvKeo+3XthsNi0vL09LtpwQfHjTTATYhrqPBj0UuWaE+Gsy6v14oRKPESKnytxoNLJ8+fLrf44vwDs0c1zVLQ4pv5n1zK/8QRb4W0FPaeDku75Ec6OJrpOZyAkFEdC2DGWoBLpMyaptGyZ9Y5fNZtMUJZmFRR8dRp32EK9LK0om9+fpyj8Ff4oBzNSJnrSgk+W6+bDmrUZVVYxGI5FIhKamJvx+PxERqHy0iEQitLS0AFOWKx9yZk4ApnZYTXLBObkHLRVkWb4hdJO/fOoHaWky06EWTFr0KXKcppVfJBKhvb2d7u5uNO16GKiqSk9PD93d3USj0Q/5g58eCfVpQdbbtmyzI35bQsczlUiSRDgcZmBgYCg0JIb6guuTUFVV8fl8DA4ORtV4o9fYifz/ECmIAbB27do3gLKGhoZlca/X1tZekWX5pizLLFq0aLtWWFM1WbbXX39doLKy8kxWfkHWRIGvvXYym2j0nEFnqL599yaTTJZJIruvtmYym3jppZeqfV7vplAoXAhQWVl5wVZYUzGTfDt3vrDyxMmTNxuN5gGAZcuW3XS6tGKcLPHv79q1szIUDN0y3WRGLSY+8cgjzaoe27Fjxz8PswGw/zAQuvS25ctu/YfpZNM0jZdeeumeUCi0ORwOVw5fi0QiGePzTV3+bx566KGyoqLCl+I/37F9e198fmnCA8t+AJMikZfvhH99ZN8ZxZvMN3K52J1ThR5NG4e44Q7RElCQuW7981nE0JCm3JIlS/x6JD3uOvn5+X69Gonsf+PNyiM/+GGzEtGqggH/Ir/v+nLK9LHTe2+n0+lXjZb+iqr3vgGA/TWJbfcx9HP10Vv/RVGjVRMFtvf0YLfbx6UtLS31jUnvcrk0p9OpuVyucUp3Op2aIQPmbcsa+87jx48DWC+9XdhkKCwcuXa6q5Pnw4PXdn9y7/dGPu9vPMO5H/2Y/sYzI2m6z7Yw0N6OJEnk5eUxb9688amLivzxp4u0Nzd/bXjyzXI6VLfb7YnvvbS2NluPnDu6f+So4V8psXDJP/KxoxdM0vHHmrkSCKEpkvzdTfv5l18tkxxmM5uqyoh9emHvr0/l9A8Oku1yRQb8/vD4GmB+VFWlu7t7TNpYL8D1MDDSba+dQg8D18i12v7+Ye+3bvVgzVzNUXYcbP5JuGPdVgA+9vsnCQTUnKfubCK3uJjsnBxM5g/Gl3rVaLDlF76Xk5MTmiqTzWbTLBaL5nA4xil+WPB47wE0NzePfGGaOkzztxnAYCgb+WyVc3BVXP94voEV+k4+Xs4RvnfhvWG3h9WSkvyvP/TQK3l5+QGT2RSWpMn9SHRZ5uzs7JHlrmQZJzTsNJqv5Gdnu6+2trZ0OZ3O6r179y43mUwbnU6nT9dhzDZ4+JOPPXa79I0TJ8r83mhltM9ma2trq8nOzraa5BuflRBJigMsy5YtcwOncnNzW6a4MZJCUZRoVlZmYHmNux9IBXrIysoIm0zGYPzYQqKnomiRaL/RaMzLyckJPfzww+cSLeNnP314A3DL8HtN0zjXeO5tVdN2hcPhz1+5cmWxz+fbZrPZNgC9DodDMxqNkVg8oAAHFUV5UJblrYqi/NfQ7pzrwyGRoV6AMTYG0NPTYz969GhNYWFhw7p16zpzc3N9AF6v1757926n3W7PiYbDy5xOZ7XJZMpTFEVyOp3a6PS6UHg8HiV2SPlIHKDr6thelL8f+ppG30SJxBArVqzwxY5JpCRUTJYJ4xBHf+ieaKaOSy4uLo4UFxfHa3RuTY272+XKDsVfnCoefvbZZ7PW1NdfrK9fd7G8vCz+hkazJE0yVvDBxpFopiZKK7PtDmZMCRFjBrs8Fj0Q4t940xr4TbZZNU3bRPDrMbYFS1fbxUckfWa71TGKkbVeEwTWhMkJFFmaYx0AqiojLVmyJB/g4sW27OHEltxiqu95jIy8oXkC/oHENsYkgypLpMbWAM9oK88gxbIkbd269Qw3njT55JNPfrq/v/+3nnvuuY179+7dMDg4iNvtpqSkhAcffJAHtjzA0VcOsGnzzew/fgK3241CBu+8fXle+aL5VQBWKZ9LK4appiIYaE5TttREO3nypM1kMllsNtvt0Wj0TqfT+QTwx3/4h3/0+3a7XXv88cc/C3wW4HpTqdGqvwjY4u5vUK8GWWjXJsv+gXC+MD+/6KK/XFpXV/dEph4mExH/u45EjsWOjUjkGPlwODgSz9DfH5QGen3yFZ13jSTk5Iya2BqiqKhI+7iF/wGe0CPgyBAjyzJ2u318pvR6NrHf5K4UCzDFXlkkdh1Gbc2WZZlIJLpWT/Ys0A0UYrRlBI5sX0v+ku0ArF95AK3vPAP7H6G3+UU+ufCZtL9DSiWdwiPE1+PJTFI14ihNLhQZeXJ95Of3YTAkPj/7/T7Lc8/9XdXly40V4XA4D5iRpZmMjIzB4uLituXL3X9TWlq6R5blEQHi59OPSjOSJKaKkbTTC6WB69dkIpFIXlVVde+CBQu6XnvttcJECu3q6soaGBgokmW5aMGCBV2JLNIYR7qRm/JAiSzLZLr0c7UWC7JkQpFMWIxmMAcxZbgwmDPQIl5GDwt7u9vQ/B1kZ2U1nwo0n0pagGmIr9X1mX9SlS3LMquqqn4B/GLbtm2G+OsHDx6ssNlshaOv+/1+OXYkfGpZWsJtoKiKKMt0dBwzmezmzZsb1qxZ0zSaH+iayMTJkye/Uk+bsBCf//znHxu+Z59+evsD0MvQhNOL+uulA9tuhzRWAocmcOKnfew7cKDHarW+7fV6Q2fPnq0sLCzMUVUVu90+dKqYVC0nTXtsOnZ8usVimWd2Vf2+Pm4zXVuGK9/eZ35yd9SaOTgrnYBh5NjKeahGC5vW3cTFixfJzc31f/Hzn/+zlpaWQ9NlPXbsmGvLli1det+UNwYu7t//1Muvrwd03Se7W1paTnR1dVFTXu5XVTVaWVkZkGWZoqKisDlzzR8BjJkgcuZoNVV1i1EtZThLa7AVVGA0GFAikRc83ouZDocjzzPY/zuexu2YPLUj54DTXp233np72Ud+/4tfv3z5clcgECgC+jds2DCv/pN3fTZNg5L5FkbGAU+98k0+UbUd6vuR75qfHfB4/91ut383Ly9v4/PPP28/sv/AE1HjvPs1VbtfO3HwJ1artz1nsVjqNKayQ5SlrfgcAWo/dRdD20Nk3A4HkXD4CQMUKoqyRH/vB8b0AoYPdXwIUFX1QY/H85+xMf16YJ3BIK+bOo9CZImVXG8vqqryxht/t6a7u/tfMzMzf8dut8uBQGBpIBCQI5FIVm9vbx5A0+XL90UikSe13Py1sqIQjUaTEx4gqqq/WFpSEk5R+JkYNyHBbrdvBsbsDTeZTKmfHDZphJF/wwgdHR0Zfr9/gd/vX6DrN2f4UEimREHCc48kScJisbzkdrsrYmsARZKYN29exOVyjQ0MXU8TNYzjzCCH4o6imkymPy8oLBycZgbRuL5/OqTXtR++ASrs9twvGI3GV+NnASXWUB4/fjz3a1/7WlUgENhjMBjCeXl57p6ent39/f2P9fX1ffPUqVPbGhoayiRJurt/06975axbMr5tXNAwpRdRnwF0Rx4HkMxmjbgZOpMbDE4Hve5rjNvIOHrT45T9miRJ/wa8ajKZxu2XnzwOgJ07d2b7/f6/DAaDy51O5+/JsjxQWlr6vc7Ozse6uroWBwKBrdFotDSqRm/SdcnMzAyPLK6YKgzizqRcO/lMolu6bmZT+RjctqGDu4aC0Gw2J/3MjUaj25HS0d/HTrLslSR6e3tl4B8TyPel+Pde/V0HGe5KEXSOMBzNwWDwxcbGxi8BB4a3rM3EbnVJksBkMt1nNBolfTeUabp1DuOXhalzJkG6A7dKAnlkWf62JEn3mqaeuTwcEoqmabv1/XfbgNR/sY8AkiRtcjqd5dPNExAIBAKBQCAQCAQCgUAgEAgEAoFAIBAIBAKBQCAQCAQCgUAgEAgEAoFA8N8I6amZF7ZEyAAAAABJRU5ErkJggg==";
+
 /**
  * Generate an invoice PDF for the given order
  * @param order Order data
@@ -43,28 +47,8 @@ export const generateInvoice = (
     // Add company logo or text header
     if (includeLogo) {
       try {
-        // You would need to replace this with your actual logo path
-        const logo = new Image();
-        logo.src = "/public/logo.png"; // Replace with your actual logo path
-
-        // Create a hidden canvas to convert the logo to a data URL
-        const canvas = document.createElement("canvas");
-        canvas.width = 150;
-        canvas.height = 50;
-        const ctx = canvas.getContext("2d");
-
-        // If we successfully load the logo, add it to the PDF
-        logo.onload = () => {
-          if (ctx) {
-            ctx.drawImage(logo, 0, 0, 150, 50);
-            doc.addImage(canvas.toDataURL(), "PNG", 15, 10, 50, 18);
-          }
-        };
-
-        // If logo fails to load, fall back to text
-        logo.onerror = () => {
-          addTextHeader(doc);
-        };
+        // Use the embedded base64 logo instead of loading from file
+        doc.addImage(COMPANY_LOGO_BASE64, "PNG", 15, 10, 40, 18);
       } catch (logoError) {
         console.warn("Could not add logo, using text instead:", logoError);
         addTextHeader(doc);
@@ -244,7 +228,7 @@ export const generateInvoice = (
     // Determine starting Y position for the table
     const tableStartY = order.trackingNumber ? startY + 65 : startY + 45;
 
-    // Generate the table using the imported autoTable function
+    // Generate the table using the imported autoTable function - adjust column widths to avoid overflow
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
@@ -259,11 +243,29 @@ export const generateInvoice = (
         fillColor: [245, 247, 250],
       },
       columnStyles: {
-        0: { cellWidth: 40 }, // Item name
-        1: { cellWidth: 60 }, // Description
+        0: { cellWidth: 30 }, // Item name - further reduced width
+        1: { cellWidth: 40 }, // Description - further reduced width
         2: { cellWidth: 15 }, // Quantity
         3: { cellWidth: 25 }, // Price
-        4: { cellWidth: 30 }, // Total
+        4: { cellWidth: 25 }, // Total
+      },
+      margin: { left: 15, right: 15 }, // Add margins to ensure content fits
+      didParseCell: function (data) {
+        // Truncate text in item name and description columns if too long
+        if (data.column.index === 0 && data.cell.text.length > 0) {
+          // Truncate item name if too long
+          const text = data.cell.text[0];
+          if (typeof text === "string" && text.length > 15) {
+            data.cell.text = [text.substring(0, 15) + "..."];
+          }
+        }
+        if (data.column.index === 1 && data.cell.text.length > 0) {
+          // Truncate description if too long
+          const text = data.cell.text[0];
+          if (typeof text === "string" && text.length > 20) {
+            data.cell.text = [text.substring(0, 20) + "..."];
+          }
+        }
       },
       foot: [
         [
@@ -451,16 +453,12 @@ export const emailInvoice = async (
       return false;
     }
 
-    // In a real implementation, you would:
-    // 1. Generate the invoice
-    // 2. Send it to your backend
-    // 3. Have your backend email it to the customer
-
-    // This is just a placeholder to demonstrate how it would work
+    // Determine recipient email
     const recipientEmail =
       email ||
       (typeof order.user !== "string" ? order.user?.email : undefined) ||
       order.shippingAddress.email ||
+      order.paymentResult?.email_address ||
       "";
 
     if (!recipientEmail) {
@@ -468,14 +466,16 @@ export const emailInvoice = async (
       return false;
     }
 
-    // Here you would call your API endpoint to send the email
-    // For now, we'll just log that it would be sent
-    console.log(
-      `Invoice for order ${order._id} would be sent to ${recipientEmail}`
-    );
+    // Import the API service to handle proper base URL and configuration
+    const api = (await import("../services/api")).default;
 
-    // Return true to indicate success (in a real implementation, you'd return the API response)
-    return true;
+    // Call the API to send the invoice email using the api service
+    const response = await api.post("/emails/send-invoice", {
+      orderId: order._id,
+      recipientEmail: recipientEmail,
+    });
+
+    return response.data.success;
   } catch (error) {
     console.error("Error emailing invoice:", error);
     return false;
