@@ -62,8 +62,12 @@ const orderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false, // Changed from true to false to support guest checkout
       ref: "User",
+    },
+    isGuestOrder: {
+      type: Boolean,
+      default: false,
     },
     orderItems: [
       {
@@ -84,6 +88,8 @@ const orderSchema = new mongoose.Schema(
       state: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
+      phone: { type: String, required: true },
+      email: { type: String }, // Added to store email for guest orders
     },
     paymentMethod: {
       type: String,
@@ -127,7 +133,14 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "processing", "shipped", "delivered", "returned"],
+      enum: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "returned",
+        "cancelled",
+      ],
       default: "pending",
     },
     deliveredAt: {

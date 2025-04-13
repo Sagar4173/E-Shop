@@ -11,10 +11,12 @@ exports.createOrder = async (req, res) => {
       orderItems,
       shippingAddress,
       paymentMethod,
+      paymentResult,
       subtotal,
       taxAmount,
       shippingAmount,
       totalAmount,
+      isGuestCheckout,
     } = req.body;
 
     if (orderItems && orderItems.length === 0) {
@@ -24,14 +26,26 @@ exports.createOrder = async (req, res) => {
     // Create new order
     const order = new Order({
       orderItems,
-      user: req.user._id,
+      user: req.user ? req.user._id : null, // Allow null user for guest checkout
       shippingAddress,
       paymentMethod,
       subtotal,
       taxAmount,
       shippingAmount,
       totalAmount,
+      isGuestOrder: isGuestCheckout || false,
     });
+
+    // If payment result is included in the request (for guest checkout),
+    // update payment status immediately
+    if (paymentResult && isGuestCheckout) {
+      order.isPaid = true;
+      order.paidAt = Date.now();
+      if (order.status === "pending") {
+        order.status = "processing";
+      }
+      order.paymentResult = paymentResult;
+    }
 
     // Update product stock quantities
     for (const item of orderItems) {
@@ -125,25 +139,38 @@ exports.updateOrderToPaid = async (req, res) => {
 // @access  Private/Admin
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const order = await Order.findById(req.params.id);
+    const { status, note, trackingNumber } = req.body;
 
-    if (order) {
-      order.status = status;
+    // Use findOneAndUpdate to avoid validation issues with partial updates
+    // This ensures we only update the fields we want and don't affect required fields
+    const updateFields = { status };
 
-      if (status === "delivered") {
-        order.deliveredAt = Date.now();
-      }
+    // Add optional fields if they're provided
+    if (status === "delivered") {
+      updateFields.deliveredAt = Date.now();
+    }
 
-      const updatedOrder = await order.save();
+    if (trackingNumber) {
+      updateFields.trackingNumber = trackingNumber;
+    }
 
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateFields },
+      { new: true, runValidators: false } // Return updated document, skip validation
+    );
+
+    if (updatedOrder) {
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error updating order status:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -274,19 +301,34 @@ exports.createReturnRequest = async (req, res) => {
       });
     }
 
-    // Add return items to order
-    order.returns = [...order.returns, ...processedReturnItems];
-    order.hasReturn = true;
+    // Instead of directly saving the order, use findByIdAndUpdate to avoid validation issues
+    // This will add the return items to the returns array and set hasReturn to true
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        $push: { returns: { $each: processedReturnItems } },
+        $set: { hasReturn: true },
+      },
+      {
+        new: true,
+        runValidators: false, // Skip validation to avoid shippingAddress.phone issue
+      }
+    );
 
-    const updatedOrder = await order.save();
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found during update" });
+    }
 
     res.status(201).json({
       message: "Return request created successfully",
       returnItems: updatedOrder.returns,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error creating return request:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -302,50 +344,76 @@ exports.updateReturnStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    // First check if the order exists
     const order = await Order.findById(id);
-
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Find the return item
+    // Find the return item to get its current state
     const returnItem = order.returns.id(returnId);
-
     if (!returnItem) {
       return res.status(404).json({ message: "Return request not found" });
     }
 
-    // Update the return status
-    returnItem.status = status;
+    // Prepare update query for the specific return item
+    const updateQuery = {
+      $set: {
+        "returns.$[item].status": status,
+      },
+    };
+
+    // Add comments if provided
     if (comments) {
-      returnItem.comments = comments;
+      updateQuery.$set["returns.$[item].comments"] = comments;
     }
 
-    // If status is approved, we might need to update inventory
-    if (status === "approved") {
-      // Process inventory updates if needed
-    }
+    // Check if we need to update the hasReturn flag
+    let hasReturn = order.hasReturn;
 
-    // If all returns are completed or rejected, update hasReturn flag
     if (status === "completed" || status === "rejected") {
-      const pendingReturns = order.returns.filter(
-        (r) => r.status !== "completed" && r.status !== "rejected"
+      // Count other returns that are still pending or approved
+      const otherPendingReturns = order.returns.filter(
+        (r) =>
+          r._id.toString() !== returnId &&
+          r.status !== "completed" &&
+          r.status !== "rejected"
       );
 
-      if (pendingReturns.length === 0) {
-        order.hasReturn = false;
+      // If no other pending returns, update hasReturn flag
+      if (otherPendingReturns.length === 0) {
+        updateQuery.$set.hasReturn = false;
       }
     }
 
-    await order.save();
+    // Use findOneAndUpdate with arrayFilters to update the specific return item
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: id },
+      updateQuery,
+      {
+        new: true,
+        runValidators: false,
+        arrayFilters: [{ "item._id": returnId }],
+      }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Error updating return" });
+    }
+
+    // Find the updated return item in the result
+    const updatedReturnItem = updatedOrder.returns.id(returnId);
 
     res.json({
       message: "Return status updated successfully",
-      returnItem,
+      returnItem: updatedReturnItem,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error updating return status:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 

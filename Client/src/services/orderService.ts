@@ -17,6 +17,8 @@ interface CreateOrderData {
   taxAmount: number;
   shippingAmount: number;
   totalAmount: number;
+  isGuestCheckout?: boolean;
+  paymentResult?: any;
 }
 
 // Interface for return request items
@@ -43,7 +45,9 @@ export const createOrder = async (
   orderData: CreateOrderData
 ): Promise<Order> => {
   try {
-    const response = await api.post("/orders", orderData);
+    // Use the guest endpoint for guest checkout
+    const endpoint = orderData.isGuestCheckout ? "/orders/guest" : "/orders";
+    const response = await api.post(endpoint, orderData);
     return response.data;
   } catch (error) {
     throw error;

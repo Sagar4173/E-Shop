@@ -28,6 +28,7 @@ import ShippingPage from "./pages/info/ShippingPage";
 import ReturnPolicyPage from "./pages/info/ReturnPolicyPage";
 import FAQPage from "./pages/info/FAQPage";
 import TermsPage from "./pages/info/TermsPage";
+import OrderDetailPage from "./pages/account/OrderDetailPage";
 
 const App = () => {
   return (
@@ -65,7 +66,7 @@ const App = () => {
             element={<Navigate replace to="/account/profile" />}
           />
           <Route path="/account/orders" element={<OrdersPage />} />
-          <Route path="/account/orders/:id" element={<OrdersPage />} />
+          <Route path="/account/orders/:id" element={<OrderDetailPage />} />
           <Route path="/account/profile" element={<ProfilePage />} />
           <Route path="/account/addresses" element={<AddressesPage />} />
           <Route path="/account/wishlist" element={<WishlistPage />} />

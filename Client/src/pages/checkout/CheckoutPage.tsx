@@ -87,9 +87,13 @@ const CheckoutPage = () => {
       if (
         cartItems.length === 0 &&
         !isCompletingCheckout.current &&
-        !isCheckoutComplete
+        !isCheckoutComplete &&
+        !location.pathname.includes("order-confirmation")
       ) {
-        navigate("/products");
+        // Add a small delay to ensure we're not in the middle of a navigation
+        setTimeout(() => {
+          navigate("/products");
+        }, 100);
         return;
       }
 

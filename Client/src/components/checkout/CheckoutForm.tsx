@@ -227,22 +227,31 @@ const CheckoutForm = ({
 
       try {
         // Update order as paid in the backend - will change status from pending to processing
-        await fetch(
-          `${import.meta.env.VITE_API_URL}/orders/${createdOrder._id}/pay`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              id: paymentMethod.id,
-              status: "succeeded",
-              update_time: new Date().toISOString(),
-              email_address: formData.email,
-            }),
-          }
-        );
+        // Only attempt to update payment status using token-based auth if not guest checkout
+        if (!isGuestCheckout && localStorage.getItem("token")) {
+          await fetch(
+            `${import.meta.env.VITE_API_URL}/orders/${createdOrder._id}/pay`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              body: JSON.stringify({
+                id: paymentMethod.id,
+                status: "succeeded",
+                update_time: new Date().toISOString(),
+                email_address: formData.email,
+              }),
+            }
+          );
+        } else {
+          // For guest checkout, use the token returned with the order if available
+          // or skip payment status update (it should be handled during order creation)
+          console.log(
+            "Guest checkout - payment status updated during order creation"
+          );
+        }
       } catch (payError) {
         console.error("Failed to update order payment status:", payError);
         // Continue with checkout even if this fails

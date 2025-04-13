@@ -22,6 +22,21 @@ if (!stripeSecretKey) {
   stripe = require("stripe")(stripeSecretKey);
 }
 
+// Define minimum amounts for different currencies in cents
+const MINIMUM_CHARGE_AMOUNTS = {
+  usd: 50, // $0.50
+  eur: 50, // €0.50
+  gbp: 30, // £0.30
+  inr: 50, // ₹0.50
+  // Add more currencies as needed
+  default: 50, // Default minimum
+};
+
+// Helper to get minimum amount for a currency
+const getMinimumAmount = (currency) => {
+  return MINIMUM_CHARGE_AMOUNTS[currency] || MINIMUM_CHARGE_AMOUNTS.default;
+};
+
 // @desc    Get Stripe publishable key
 // @route   GET /api/payments/config
 // @access  Public
@@ -46,9 +61,25 @@ exports.createPaymentIntent = async (req, res) => {
   try {
     const { amount, currency = "usd", paymentMethodType = "card" } = req.body;
 
+    // Convert amount to cents and ensure it's an integer
+    let amountInCents = Math.round(amount * 100);
+    const minimumAmount = getMinimumAmount(currency);
+
+    // Check if amount meets minimum requirement
+    if (amountInCents < minimumAmount) {
+      console.log(
+        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`
+      );
+      amountInCents = minimumAmount;
+    }
+
+    console.log(
+      `Creating payment intent for ${amountInCents} cents (${currency})`
+    );
+
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe expects amount in cents
+      amount: amountInCents,
       currency,
       payment_method_types: [paymentMethodType],
       metadata: {
@@ -61,7 +92,7 @@ exports.createPaymentIntent = async (req, res) => {
       id: paymentIntent.id,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Payment intent creation error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -90,9 +121,25 @@ exports.createGuestPaymentIntent = async (req, res) => {
       return res.status(400).json({ message: "Valid amount is required" });
     }
 
+    // Convert amount to cents and ensure it's an integer
+    let amountInCents = Math.round(amount * 100);
+    const minimumAmount = getMinimumAmount(currency);
+
+    // Check if amount meets minimum requirement
+    if (amountInCents < minimumAmount) {
+      console.log(
+        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`
+      );
+      amountInCents = minimumAmount;
+    }
+
+    console.log(
+      `Creating guest payment intent for ${amountInCents} cents (${currency})`
+    );
+
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe expects amount in cents
+      amount: amountInCents,
       currency,
       payment_method_types: [paymentMethodType],
       metadata: {
@@ -107,7 +154,7 @@ exports.createGuestPaymentIntent = async (req, res) => {
       id: paymentIntent.id,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Guest payment intent creation error:", error);
     res.status(500).json({ message: error.message });
   }
 };

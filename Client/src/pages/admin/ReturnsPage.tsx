@@ -204,6 +204,7 @@ const ReturnsPage: React.FC = () => {
         </h2>
         <div className="flex flex-wrap gap-2">
           <button
+            key="filter-all"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "all"
                 ? "bg-blue-600 text-white"
@@ -214,6 +215,7 @@ const ReturnsPage: React.FC = () => {
             All
           </button>
           <button
+            key="filter-pending"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "pending"
                 ? "bg-yellow-600 text-white"
@@ -224,6 +226,7 @@ const ReturnsPage: React.FC = () => {
             Pending
           </button>
           <button
+            key="filter-approved"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "approved"
                 ? "bg-green-600 text-white"
@@ -234,6 +237,7 @@ const ReturnsPage: React.FC = () => {
             Approved
           </button>
           <button
+            key="filter-completed"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "completed"
                 ? "bg-blue-600 text-white"
@@ -244,6 +248,7 @@ const ReturnsPage: React.FC = () => {
             Completed
           </button>
           <button
+            key="filter-rejected"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "rejected"
                 ? "bg-red-600 text-white"
@@ -285,8 +290,12 @@ const ReturnsPage: React.FC = () => {
                     Return for Order #{returnData.orderNumber}
                   </h2>
                   <p className="text-sm text-gray-600">
-                    Customer: {returnData.customer.name} (
-                    {returnData.customer.email})
+                    Customer:{" "}
+                    {returnData.customer ? returnData.customer.name : "Guest"}(
+                    {returnData.customer
+                      ? returnData.customer.email
+                      : "No email"}
+                    )
                   </p>
                   <p className="text-sm text-gray-600">
                     Submitted: {formatDate(returnData.createdAt)}
@@ -454,28 +463,31 @@ const ReturnsPage: React.FC = () => {
               </span>
             </p>
 
-            {selectedReturnItem.photos &&
-              selectedReturnItem.photos.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="font-medium mb-2">Return Photos</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedReturnItem.photos.map((photo, index) => (
-                      <a
-                        key={index}
-                        href={photo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={photo}
-                          alt={`Return photo ${index + 1}`}
-                          className="h-32 w-full object-cover rounded"
-                        />
-                      </a>
-                    ))}
-                  </div>
+            {/* More robust photo handling to prevent errors */}
+            {selectedReturnItem &&
+            selectedReturnItem.photos &&
+            Array.isArray(selectedReturnItem.photos) &&
+            selectedReturnItem.photos.length > 0 ? (
+              <div className="mb-4">
+                <h3 className="font-medium mb-2">Return Photos</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedReturnItem.photos.map((photo, index) => (
+                    <a
+                      key={`photo-${selectedReturnItem._id}-${index}`}
+                      href={photo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={photo}
+                        alt={`Return photo ${index + 1}`}
+                        className="h-32 w-full object-cover rounded"
+                      />
+                    </a>
+                  ))}
                 </div>
-              )}
+              </div>
+            ) : null}
 
             <div className="mb-4">
               <label
