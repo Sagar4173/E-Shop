@@ -50,6 +50,15 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Function to navigate to order details
+  const navigateToOrderDetails = (orderId: string, event: React.MouseEvent) => {
+    // Don't navigate if clicking on an action button
+    if ((event.target as Element).closest("a, button")) {
+      return;
+    }
+    navigate(`/account/orders/${orderId}`);
+  };
+
   useEffect(() => {
     // Check if user is logged in
     if (!isAuthenticated()) {
@@ -293,7 +302,13 @@ const OrdersPage = () => {
                           isEligibleForReturn(order) && !order.hasReturn;
 
                         return (
-                          <tr key={order._id}>
+                          <tr
+                            key={order._id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={(event) =>
+                              navigateToOrderDetails(order._id, event)
+                            }
+                          >
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">
                                 {order._id.substring(0, 8).toUpperCase()}

@@ -4,6 +4,7 @@ import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CartContext } from "../../context/CartContext";
 import { createOrder } from "../../services/orderService";
 import { sendOrderConfirmationEmail } from "../../services/email/emailService";
+import { updateOrderToPaid } from "../../services/orderService";
 import {
   FaCreditCard,
   FaLock,
@@ -227,27 +228,16 @@ const CheckoutForm = ({
 
       try {
         // Update order as paid in the backend - will change status from pending to processing
-        // Only attempt to update payment status using token-based auth if not guest checkout
-        if (!isGuestCheckout && localStorage.getItem("token")) {
-          await fetch(
-            `${import.meta.env.VITE_API_URL}/orders/${createdOrder._id}/pay`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-              body: JSON.stringify({
-                id: paymentMethod.id,
-                status: "succeeded",
-                update_time: new Date().toISOString(),
-                email_address: formData.email,
-              }),
-            }
-          );
+        // Only attempt to update payment status if not guest checkout
+        if (!isGuestCheckout) {
+          await updateOrderToPaid(createdOrder._id, {
+            id: paymentMethod.id,
+            status: "succeeded",
+            update_time: new Date().toISOString(),
+            email_address: formData.email,
+          });
         } else {
-          // For guest checkout, use the token returned with the order if available
-          // or skip payment status update (it should be handled during order creation)
+          // For guest checkout, payment status should be handled during order creation
           console.log(
             "Guest checkout - payment status updated during order creation"
           );
@@ -289,6 +279,44 @@ const CheckoutForm = ({
       setProcessing(false);
       // Reset the flag if payment fails
       isCompletingOrder.current = false;
+    }
+  };
+
+  // Create a custom card element style that ensures accessibility - removed unsupported ::focus property
+  const cardElementStyle = {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#424770",
+        "::placeholder": {
+          color: "#aab7c4",
+        },
+      },
+      invalid: {
+        color: "#9e2146",
+      },
+    },
+    hidePostalCode: true, // Handle postal code separately for better accessibility
+  };
+
+  // Add a ref to access the card element wrapper for focus management
+  const cardElementRef = useRef<HTMLDivElement>(null);
+
+  // Handle the case when the card element receives or loses focus
+  const handleCardElementFocus = (event: { focused: boolean }) => {
+    if (cardElementRef.current) {
+      if (event.focused) {
+        // When focused, ensure proper aria attributes
+        cardElementRef.current.setAttribute(
+          "aria-describedby",
+          "card-element-errors"
+        );
+        // Add a focus class to improve visual focus indicator since we can't style the iframe directly
+        cardElementRef.current.classList.add("ring-2", "ring-blue-500");
+      } else {
+        // Remove focus styling when focus is lost
+        cardElementRef.current.classList.remove("ring-2", "ring-blue-500");
+      }
     }
   };
 
@@ -629,23 +657,48 @@ const CheckoutForm = ({
               </div>
 
               {stripe && elements ? (
-                <div className="border border-gray-300 rounded-md p-4">
-                  <CardElement
-                    options={{
-                      style: {
-                        base: {
-                          fontSize: "16px",
-                          color: "#424770",
-                          "::placeholder": {
-                            color: "#aab7c4",
-                          },
-                        },
-                        invalid: {
-                          color: "#9e2146",
-                        },
-                      },
-                    }}
-                  />
+                <div>
+                  {/* Accessible label for the card element */}
+                  <label
+                    htmlFor="card-element"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Credit or debit card
+                  </label>
+                  {/* Accessible wrapper for the card element with improved focus handling */}
+                  <div
+                    className="border border-gray-300 rounded-md p-4 focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200"
+                    ref={cardElementRef}
+                    role="group"
+                    aria-labelledby="card-element-label"
+                  >
+                    <div id="card-element-label" className="sr-only">
+                      Enter your credit card information
+                    </div>
+                    <CardElement
+                      id="card-element"
+                      options={cardElementStyle}
+                      onChange={(event) => {
+                        if (event.error) {
+                          setError(event.error.message);
+                        } else {
+                          setError(null);
+                        }
+                      }}
+                      onFocus={handleCardElementFocus}
+                      onBlur={handleCardElementFocus}
+                      className="w-full"
+                    />
+                  </div>
+                  {/* Error message container with proper accessibility */}
+                  <div
+                    id="card-element-errors"
+                    className="mt-2 text-sm text-red-600"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    {error}
+                  </div>
                 </div>
               ) : (
                 // Placeholder card input when not using Stripe Elements
@@ -712,7 +765,10 @@ const CheckoutForm = ({
 
             {/* Error message */}
             {error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div
+                className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md"
+                role="alert"
+              >
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}

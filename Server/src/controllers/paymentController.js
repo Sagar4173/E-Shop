@@ -1,4 +1,5 @@
 // Debug logging to help identify the issue
+console.log("Payment Controller Initialization");
 console.log("Environment variables:", {
   NODE_ENV: process.env.NODE_ENV,
   STRIPE_KEY_EXISTS: !!process.env.STRIPE_SECRET_KEY,
@@ -18,18 +19,24 @@ if (!stripeSecretKey) {
   console.error("Error: Stripe secret key is missing. Check your .env file.");
   // We'll handle the missing key in the route handlers
 } else {
-  console.log("Initializing Stripe with the secret key");
-  stripe = require("stripe")(stripeSecretKey);
+  try {
+    console.log("Initializing Stripe with the secret key");
+    stripe = require("stripe")(stripeSecretKey);
+    console.log("Stripe initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Stripe:", error);
+  }
 }
 
 // Define minimum amounts for different currencies in cents
+// Updated with higher minimums to meet Stripe's requirements
 const MINIMUM_CHARGE_AMOUNTS = {
-  usd: 50, // $0.50
-  eur: 50, // €0.50
-  gbp: 30, // £0.30
-  inr: 50, // ₹0.50
+  usd: 100, // $1.00 (increased from $0.50)
+  eur: 100, // €1.00 (increased from €0.50)
+  gbp: 100, // £1.00 (increased from £0.30)
+  inr: 100, // ₹1.00 (increased from ₹0.50)
   // Add more currencies as needed
-  default: 50, // Default minimum
+  default: 100, // Default minimum (increased from 50)
 };
 
 // Helper to get minimum amount for a currency

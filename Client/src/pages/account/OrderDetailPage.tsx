@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import {
   FaDownload,
@@ -10,6 +10,10 @@ import {
   FaExchangeAlt,
   FaArrowLeft,
   FaPrint,
+  FaUndo,
+  FaEye,
+  FaEnvelope,
+  FaEllipsisV,
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import OrderStatusTimeline from "../../components/orders/OrderStatusTimeline";
@@ -17,7 +21,11 @@ import {
   getOrderById,
   getOrderStatusHistory,
 } from "../../services/orderService";
-import { downloadInvoice } from "../../utils/invoiceGenerator";
+import {
+  downloadInvoice,
+  previewInvoice,
+  emailInvoice,
+} from "../../utils/invoiceGenerator";
 import { Order, StatusHistoryEntry } from "../../types";
 
 const OrderDetailPage: React.FC = () => {
@@ -26,6 +34,9 @@ const OrderDetailPage: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOptions, setShowOptions] = useState<boolean>(false);
+  const [emailSent, setEmailSent] = useState<boolean>(false);
+  const [sendingEmail, setSendingEmail] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -93,6 +104,34 @@ const OrderDetailPage: React.FC = () => {
     }
   };
 
+  const handlePreviewInvoice = () => {
+    if (order) {
+      previewInvoice(order);
+    }
+  };
+
+  const handleEmailInvoice = async () => {
+    if (order) {
+      setSendingEmail(true);
+      try {
+        const success = await emailInvoice(order);
+        if (success) {
+          setEmailSent(true);
+          setTimeout(() => {
+            setEmailSent(false);
+          }, 5000);
+        } else {
+          alert("Failed to send invoice email. Please try again later.");
+        }
+      } catch (error) {
+        console.error("Error sending invoice email:", error);
+        alert("Failed to send invoice email. Please try again later.");
+      } finally {
+        setSendingEmail(false);
+      }
+    }
+  };
+
   const handlePrintPage = () => {
     window.print();
   };
@@ -147,16 +186,69 @@ const OrderDetailPage: React.FC = () => {
               Placed on {formatDate(order.createdAt)}
             </p>
           </div>
-          <div className="flex space-x-3 mt-4 md:mt-0">
+          <div className="flex mt-4 md:mt-0 relative">
+            {emailSent && (
+              <div className="absolute top-[-40px] right-0 bg-green-50 text-green-600 px-3 py-2 rounded border border-green-200 text-sm whitespace-nowrap">
+                Invoice sent to email!
+              </div>
+            )}
+            {/* Primary invoice actions */}
             <button
               onClick={handleDownloadInvoice}
-              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-l hover:bg-blue-700"
+              title="Download Invoice"
             >
               <FaDownload className="mr-2" /> Invoice
             </button>
+
+            {/* More options button that reveals additional actions */}
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              className="bg-blue-600 text-white px-2 py-2 rounded-r hover:bg-blue-700 border-l border-blue-500"
+              title="More Options"
+            >
+              <FaEllipsisV />
+            </button>
+
+            {/* Dropdown menu for additional invoice actions */}
+            {showOptions && (
+              <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg z-10 border border-gray-200 w-48">
+                <button
+                  onClick={() => {
+                    setShowOptions(false);
+                    handlePreviewInvoice();
+                  }}
+                  className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <FaEye className="mr-2 text-blue-600" /> Preview Invoice
+                </button>
+                <button
+                  onClick={() => {
+                    setShowOptions(false);
+                    handleEmailInvoice();
+                  }}
+                  disabled={sendingEmail}
+                  className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  <FaEnvelope className="mr-2 text-blue-600" />
+                  {sendingEmail ? "Sending..." : "Email Invoice"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowOptions(false);
+                    handlePrintPage();
+                  }}
+                  className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-200"
+                >
+                  <FaPrint className="mr-2 text-blue-600" /> Print Page
+                </button>
+              </div>
+            )}
+
+            {/* Print button shown separately on larger screens */}
             <button
               onClick={handlePrintPage}
-              className="flex items-center bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200"
+              className="hidden md:flex items-center bg-gray-100 text-gray-800 px-4 py-2 rounded ml-2 hover:bg-gray-200"
             >
               <FaPrint className="mr-2" /> Print
             </button>
@@ -247,6 +339,14 @@ const OrderDetailPage: React.FC = () => {
                   className="inline-block bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
                 >
                   Start a Return
+                </Link>
+              )}
+              {order.returnStatus === "pending" && (
+                <Link
+                  to={`/account/orders/${order._id}/return-request`}
+                  className="inline-block bg-gray-100 text-gray-800 py-2 px-4 rounded hover:bg-gray-200 mt-2 flex items-center"
+                >
+                  <FaUndo className="mr-2" /> View Return Request
                 </Link>
               )}
             </div>

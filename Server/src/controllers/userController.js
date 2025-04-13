@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const PendingRegistration = require("../models/PendingRegistration");
 const { generateToken } = require("../middlewares/authMiddleware");
 const crypto = require("crypto");
 
@@ -21,15 +22,20 @@ exports.registerUser = async (req, res) => {
     // Hash the OTP before storing
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Store the registration data and OTP in session
-    req.session = req.session || {};
-    req.session.pendingRegistration = {
+    // Instead of using a global variable, create a document in the PendingRegistration collection
+    // First delete any existing pending registrations for this email
+    await PendingRegistration.deleteMany({ email });
+
+    // Create a new pending registration
+    const pendingRegistration = new PendingRegistration({
       name,
       email,
       password,
       verificationOtp: hashedOtp,
       verificationOtpExpires: Date.now() + 60 * 60 * 1000, // 1 hour
-    };
+    });
+
+    await pendingRegistration.save();
 
     // Send verification email with OTP
     try {
@@ -62,18 +68,6 @@ exports.registerUser = async (req, res) => {
     } catch (error) {
       console.error("Error sending verification email:", error);
     }
-
-    // For Redis session implementation, we should save the session here
-
-    // Store the registration data temporarily (Redis would be better)
-    global.pendingRegistrations = global.pendingRegistrations || {};
-    global.pendingRegistrations[email] = {
-      name,
-      email,
-      password,
-      verificationOtp: hashedOtp,
-      verificationOtpExpires: Date.now() + 60 * 60 * 1000, // 1 hour
-    };
 
     res.status(200).json({
       success: true,
@@ -615,8 +609,8 @@ exports.verifyEmail = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Get pending registration data from the global object (in production, use Redis or a proper session store)
-    const pendingRegistration = global.pendingRegistrations?.[email];
+    // Find the pending registration in the database
+    const pendingRegistration = await PendingRegistration.findOne({ email });
 
     if (!pendingRegistration) {
       return res.status(400).json({
@@ -655,7 +649,7 @@ exports.verifyEmail = async (req, res) => {
     });
 
     // Clean up the pending registration
-    delete global.pendingRegistrations[email];
+    await PendingRegistration.deleteOne({ _id: pendingRegistration._id });
 
     if (user) {
       // Send welcome email
@@ -731,7 +725,7 @@ exports.resendVerification = async (req, res) => {
     }
 
     // Check if there's a pending registration for this email
-    const pendingRegistration = global.pendingRegistrations?.[email];
+    const pendingRegistration = await PendingRegistration.findOne({ email });
 
     // If there's no pending registration, check if there's already a user with this email
     if (!pendingRegistration) {
@@ -772,8 +766,12 @@ exports.resendVerification = async (req, res) => {
     pendingRegistration.verificationOtp = hashedOtp;
     pendingRegistration.verificationOtpExpires = Date.now() + 60 * 60 * 1000; // 1 hour
 
-    // Update the global object
-    global.pendingRegistrations[email] = pendingRegistration;
+    // Track attempt count
+    pendingRegistration.attempts += 1;
+    pendingRegistration.lastAttempt = Date.now();
+
+    // Save the updated document
+    await pendingRegistration.save();
 
     // Send verification email with OTP
     try {

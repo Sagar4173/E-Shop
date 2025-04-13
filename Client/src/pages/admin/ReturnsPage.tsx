@@ -8,6 +8,7 @@ import {
   FaEye,
   FaFilter,
   FaImage,
+  FaFileAlt,
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import { getAllReturns, updateReturnStatus } from "../../services/orderService";
@@ -18,47 +19,39 @@ import {
 } from "../../services/authService";
 import { format } from "date-fns";
 
-// Types for return data
-interface ReturnItem {
-  _id: string;
-  orderItem: string;
+// Types for actual return data from API
+interface ReturnApiData {
+  returnId: string;
+  orderId: string;
+  orderDate: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  productName: string;
   quantity: number;
   reason: string;
   otherReason?: string;
   status: string;
   comments?: string;
-  photos: string[];
+  photos?: string[];
   createdAt: string;
   updatedAt: string;
 }
 
-interface ReturnData {
-  _id: string;
-  orderId: string;
-  orderNumber: string;
-  customer: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  returnItems: ReturnItem[];
-  refundMethod: string;
-  isInternational: boolean;
-  additionalNotes?: string;
-  createdAt: string;
-}
-
 const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [returns, setReturns] = useState<ReturnData[]>([]);
+  const [returns, setReturns] = useState<ReturnApiData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedReturn, setSelectedReturn] = useState<ReturnData | null>(null);
-  const [selectedReturnItem, setSelectedReturnItem] =
-    useState<ReturnItem | null>(null);
+  const [selectedReturn, setSelectedReturn] = useState<ReturnApiData | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is logged in and is an admin
@@ -83,41 +76,55 @@ const ReturnsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await getAllReturns();
-      setReturns(data);
+      console.log("Fetched returns data:", data);
+
+      if (!data || !Array.isArray(data)) {
+        setDebugInfo(`Unexpected data format: ${JSON.stringify(data)}`);
+        setReturns([]);
+      } else {
+        setReturns(data);
+      }
       setLoading(false);
     } catch (err: any) {
+      console.error("Error fetching returns:", err);
       setError(err.message || "Failed to fetch returns");
       setLoading(false);
     }
   };
 
   const handleStatusUpdate = async (
-    returnItemId: string,
+    returnId: string,
     newStatus: string,
     comments?: string
   ) => {
     try {
-      await updateReturnStatus(returnItemId, newStatus, comments);
+      // Extract orderId from the selected return
+      const selectedReturnData = returns.find((r) => r.returnId === returnId);
+
+      if (!selectedReturnData) {
+        throw new Error("Return not found");
+      }
+
+      const orderId = selectedReturnData.orderId;
+
+      await updateReturnStatus(orderId, returnId, newStatus, comments);
 
       // Update the local state
       setReturns((prevReturns) =>
-        prevReturns.map((returnData) => ({
-          ...returnData,
-          returnItems: returnData.returnItems.map((item) =>
-            item._id === returnItemId
-              ? {
-                  ...item,
-                  status: newStatus,
-                  comments: comments || item.comments,
-                }
-              : item
-          ),
-        }))
+        prevReturns.map((returnData) =>
+          returnData.returnId === returnId
+            ? {
+                ...returnData,
+                status: newStatus,
+                comments: comments || returnData.comments,
+              }
+            : returnData
+        )
       );
 
       // Close the modal and show success message
       setIsModalOpen(false);
-      setSelectedReturnItem(null);
+      setSelectedReturn(null);
       setUpdateMessage(`Return status updated to ${newStatus}`);
 
       // Hide message after 3 seconds
@@ -134,17 +141,19 @@ const ReturnsPage: React.FC = () => {
     navigate("/");
   };
 
+  const navigateToOrderDetails = (orderId: string) => {
+    navigate(`/account/orders/${orderId}`);
+  };
+
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "MMMM dd, yyyy");
   };
 
-  // Filter returns based on status
+  // Filter returns based on status with null checks
   const filteredReturns =
     statusFilter === "all"
       ? returns
-      : returns.filter((returnData) =>
-          returnData.returnItems.some((item) => item.status === statusFilter)
-        );
+      : returns.filter((returnData) => returnData?.status === statusFilter);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -197,6 +206,12 @@ const ReturnsPage: React.FC = () => {
         </div>
       )}
 
+      {debugInfo && (
+        <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4">
+          <p className="text-yellow-700">{debugInfo}</p>
+        </div>
+      )}
+
       {/* Filter options */}
       <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
         <h2 className="text-lg font-medium mb-4 flex items-center">
@@ -204,7 +219,7 @@ const ReturnsPage: React.FC = () => {
         </h2>
         <div className="flex flex-wrap gap-2">
           <button
-            key="filter-all"
+            key="all"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "all"
                 ? "bg-blue-600 text-white"
@@ -215,7 +230,7 @@ const ReturnsPage: React.FC = () => {
             All
           </button>
           <button
-            key="filter-pending"
+            key="pending"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "pending"
                 ? "bg-yellow-600 text-white"
@@ -226,7 +241,7 @@ const ReturnsPage: React.FC = () => {
             Pending
           </button>
           <button
-            key="filter-approved"
+            key="approved"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "approved"
                 ? "bg-green-600 text-white"
@@ -237,7 +252,7 @@ const ReturnsPage: React.FC = () => {
             Approved
           </button>
           <button
-            key="filter-completed"
+            key="completed"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "completed"
                 ? "bg-blue-600 text-white"
@@ -248,7 +263,7 @@ const ReturnsPage: React.FC = () => {
             Completed
           </button>
           <button
-            key="filter-rejected"
+            key="rejected"
             className={`px-4 py-2 rounded-full ${
               statusFilter === "rejected"
                 ? "bg-red-600 text-white"
@@ -265,7 +280,10 @@ const ReturnsPage: React.FC = () => {
         <div className="flex justify-center items-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : filteredReturns.length === 0 ? (
+      ) : !Array.isArray(returns) ||
+        returns.length === 0 ||
+        !Array.isArray(filteredReturns) ||
+        filteredReturns.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">
           <FaExchangeAlt className="mx-auto text-4xl text-gray-400 mb-4" />
           <h2 className="text-xl font-medium text-gray-600 mb-2">
@@ -281,24 +299,25 @@ const ReturnsPage: React.FC = () => {
         <div className="grid grid-cols-1 gap-6">
           {filteredReturns.map((returnData) => (
             <div
-              key={returnData._id}
+              key={returnData.returnId}
               className="bg-white rounded-lg shadow-sm overflow-hidden"
             >
               <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-medium">
-                    Return for Order #{returnData.orderNumber}
+                    Return for Product: {returnData.productName}
                   </h2>
                   <p className="text-sm text-gray-600">
-                    Customer:{" "}
-                    {returnData.customer ? returnData.customer.name : "Guest"}(
-                    {returnData.customer
-                      ? returnData.customer.email
-                      : "No email"}
-                    )
+                    Customer: {returnData.user?.name || "Guest"}
+                    {returnData.user?.email
+                      ? ` (${returnData.user.email})`
+                      : ""}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Submitted: {formatDate(returnData.createdAt)}
+                    Submitted:{" "}
+                    {returnData.createdAt
+                      ? formatDate(returnData.createdAt)
+                      : "Unknown date"}
                   </p>
                 </div>
                 <div>
@@ -328,116 +347,70 @@ const ReturnsPage: React.FC = () => {
                     <h3 className="text-md font-medium mb-2">Return Details</h3>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4">
                       <p className="mb-1">
-                        <strong>Refund Method:</strong>{" "}
-                        {returnData.refundMethod === "original"
-                          ? "Original Payment Method"
-                          : "Store Credit (+10% bonus)"}
+                        <strong>Order ID:</strong> {returnData.orderId}
                       </p>
                       <p className="mb-1">
-                        <strong>International Return:</strong>{" "}
-                        {returnData.isInternational ? "Yes" : "No"}
+                        <strong>Order Date:</strong>{" "}
+                        {formatDate(returnData.orderDate)}
                       </p>
-                      {returnData.additionalNotes && (
+                      <p className="mb-1">
+                        <strong>Product:</strong> {returnData.productName}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Quantity:</strong> {returnData.quantity}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Reason:</strong>{" "}
+                        {returnData.reason === "other" && returnData.otherReason
+                          ? returnData.otherReason
+                          : returnData.reason.replace(/_/g, " ")}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Status:</strong>{" "}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            returnData.status
+                          )}`}
+                        >
+                          {returnData.status.charAt(0).toUpperCase() +
+                            returnData.status.slice(1)}
+                        </span>
+                      </p>
+                      {returnData.comments && (
                         <div className="mt-2">
-                          <strong>Additional Notes:</strong>
+                          <strong>Comments:</strong>
                           <p className="text-gray-700 mt-1 bg-white p-3 border border-gray-200 rounded">
-                            {returnData.additionalNotes}
+                            {returnData.comments}
                           </p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <h3 className="text-md font-medium mb-2">Return Items</h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Item
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Quantity
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Reason
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Photos
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {returnData.returnItems.map((item) => (
-                            <tr key={item._id}>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {item.orderItem}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
-                                  {item.quantity}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
-                                  {item.reason === "other" && item.otherReason
-                                    ? item.otherReason
-                                    : item.reason.replace(/_/g, " ")}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                                    item.status
-                                  )}`}
-                                >
-                                  {item.status.charAt(0).toUpperCase() +
-                                    item.status.slice(1)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {item.photos && item.photos.length > 0 ? (
-                                  <div className="flex items-center">
-                                    <FaImage className="text-blue-500 mr-1" />
-                                    <span className="text-sm text-gray-900">
-                                      {item.photos.length} photos
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-gray-500">
-                                    No photos
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <button
-                                  onClick={() => {
-                                    setSelectedReturnItem(item);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="text-blue-600 hover:text-blue-900"
-                                  disabled={
-                                    item.status === "completed" ||
-                                    item.status === "rejected"
-                                  }
-                                >
-                                  Update Status
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      onClick={() => navigateToOrderDetails(returnData.orderId)}
+                      className="bg-gray-100 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-200 flex items-center"
+                    >
+                      <FaFileAlt className="mr-2" /> View Order Details
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedReturn(returnData);
+                        setIsModalOpen(true);
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                      disabled={
+                        returnData.status === "completed" ||
+                        returnData.status === "rejected"
+                      }
+                    >
+                      {returnData.status === "completed" ||
+                      returnData.status === "rejected"
+                        ? "Status Finalized"
+                        : "Update Status"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -447,7 +420,7 @@ const ReturnsPage: React.FC = () => {
       )}
 
       {/* Return Status Update Modal */}
-      {isModalOpen && selectedReturnItem && (
+      {isModalOpen && selectedReturn && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-lg w-full p-6">
             <h2 className="text-xl font-bold mb-4">Update Return Status</h2>
@@ -455,25 +428,25 @@ const ReturnsPage: React.FC = () => {
               Current status:{" "}
               <span
                 className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                  selectedReturnItem.status
+                  selectedReturn.status
                 )}`}
               >
-                {selectedReturnItem.status.charAt(0).toUpperCase() +
-                  selectedReturnItem.status.slice(1)}
+                {selectedReturn.status.charAt(0).toUpperCase() +
+                  selectedReturn.status.slice(1)}
               </span>
             </p>
 
-            {/* More robust photo handling to prevent errors */}
-            {selectedReturnItem &&
-            selectedReturnItem.photos &&
-            Array.isArray(selectedReturnItem.photos) &&
-            selectedReturnItem.photos.length > 0 ? (
+            {/* Safe photo rendering with multiple guards */}
+            {selectedReturn &&
+            selectedReturn.photos &&
+            Array.isArray(selectedReturn.photos) &&
+            selectedReturn.photos.length > 0 ? (
               <div className="mb-4">
                 <h3 className="font-medium mb-2">Return Photos</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {selectedReturnItem.photos.map((photo, index) => (
+                  {selectedReturn.photos.map((photo, index) => (
                     <a
-                      key={`photo-${selectedReturnItem._id}-${index}`}
+                      key={`photo-${index}-${selectedReturn.returnId}`}
                       href={photo}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -487,7 +460,11 @@ const ReturnsPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mb-4 text-gray-500 italic">
+                No photos available
+              </div>
+            )}
 
             <div className="mb-4">
               <label
@@ -500,7 +477,7 @@ const ReturnsPage: React.FC = () => {
                 id="comments"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
-                defaultValue={selectedReturnItem.comments || ""}
+                defaultValue={selectedReturn.comments || ""}
               />
             </div>
 
@@ -511,14 +488,14 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturnItem._id,
+                    selectedReturn.returnId,
                     "approved",
                     commentsElement?.value
                   );
                 }}
-                disabled={selectedReturnItem.status !== "pending"}
+                disabled={selectedReturn.status !== "pending"}
                 className={`px-4 py-2 rounded-md font-medium flex-1 flex justify-center items-center ${
-                  selectedReturnItem.status !== "pending"
+                  selectedReturn.status !== "pending"
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-green-600 text-white hover:bg-green-700"
                 }`}
@@ -531,14 +508,14 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturnItem._id,
+                    selectedReturn.returnId,
                     "completed",
                     commentsElement?.value
                   );
                 }}
-                disabled={selectedReturnItem.status !== "approved"}
+                disabled={selectedReturn.status !== "approved"}
                 className={`px-4 py-2 rounded-md font-medium flex-1 flex justify-center items-center ${
-                  selectedReturnItem.status !== "approved"
+                  selectedReturn.status !== "approved"
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
@@ -551,14 +528,14 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturnItem._id,
+                    selectedReturn.returnId,
                     "rejected",
                     commentsElement?.value
                   );
                 }}
-                disabled={selectedReturnItem.status !== "pending"}
+                disabled={selectedReturn.status !== "pending"}
                 className={`px-4 py-2 rounded-md font-medium flex-1 flex justify-center items-center ${
-                  selectedReturnItem.status !== "pending"
+                  selectedReturn.status !== "pending"
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-red-600 text-white hover:bg-red-700"
                 }`}

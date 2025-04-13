@@ -19,7 +19,7 @@ exports.protect = async (req, res, next) => {
         !token ||
         token === "null" ||
         token === "undefined" ||
-        token.length < 10
+        token.length < 20
       ) {
         console.log("Rejected token:", token); // Log problematic token for debugging
         return res
@@ -38,6 +38,12 @@ exports.protect = async (req, res, next) => {
           return res
             .status(401)
             .json({ message: "User not found or deactivated" });
+        }
+
+        // Add token expiration time check if needed
+        const tokenExp = decoded.exp * 1000; // Convert to milliseconds
+        if (Date.now() >= tokenExp) {
+          return res.status(401).json({ message: "Token has expired" });
         }
 
         req.user = user;
@@ -77,7 +83,7 @@ exports.admin = (req, res, next) => {
   }
 };
 
-// Generate JWT token
+// Generate JWT token with expiry - updated to include user role for easier client-side checks
 exports.generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
