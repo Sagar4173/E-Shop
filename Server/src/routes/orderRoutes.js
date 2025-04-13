@@ -16,6 +16,11 @@ router.get("/", protect, admin, orderController.getOrders);
 
 // Dynamic parameter routes
 router.get("/:id", protect, orderController.getOrderById);
+router.get(
+  "/:id/status-history",
+  protect,
+  orderController.getOrderStatusHistory
+);
 router.put("/:id/pay", protect, orderController.updateOrderToPaid);
 
 // Return routes

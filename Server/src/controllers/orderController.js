@@ -141,9 +141,27 @@ exports.updateOrderStatus = async (req, res) => {
   try {
     const { status, note, trackingNumber } = req.body;
 
+    // Find the order first to get current data
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Create a status history entry
+    const statusHistoryEntry = {
+      status: status,
+      date: new Date(),
+      note: note || `Status updated to ${status}`,
+      updatedBy: req.user._id,
+    };
+
     // Use findOneAndUpdate to avoid validation issues with partial updates
     // This ensures we only update the fields we want and don't affect required fields
     const updateFields = { status };
+
+    // Add the new status history entry
+    updateFields.$push = { statusHistory: statusHistoryEntry };
 
     // Add optional fields if they're provided
     if (status === "delivered") {
@@ -156,7 +174,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
-      { $set: updateFields },
+      updateFields,
       { new: true, runValidators: false } // Return updated document, skip validation
     );
 
@@ -194,7 +212,13 @@ exports.getMyOrders = async (req, res) => {
 // @access  Private/Admin
 exports.getOrders = async (req, res) => {
   try {
-    const orders = await Order.find({})
+    // Check if userId query parameter exists to filter orders
+    const filter = {};
+    if (req.query.userId) {
+      filter.user = req.query.userId;
+    }
+
+    const orders = await Order.find(filter)
       .populate("user", "id name")
       .sort({ createdAt: -1 });
     res.json(orders);
@@ -430,7 +454,7 @@ exports.getAllReturns = async (req, res) => {
 
     orders.forEach((order) => {
       order.returns.forEach((returnItem) => {
-        // Find the original order item
+        // Find the corresponding order item
         const orderItem = order.orderItems.find(
           (item) => item._id.toString() === returnItem.orderItem.toString()
         );
@@ -439,15 +463,33 @@ exports.getAllReturns = async (req, res) => {
           returns.push({
             returnId: returnItem._id,
             orderId: order._id,
+            orderNumber: order._id.toString().slice(-6).toUpperCase(),
             orderDate: order.createdAt,
-            user: order.user,
-            productName: orderItem.name,
-            quantity: returnItem.quantity,
+            customer: order.user
+              ? {
+                  _id: order.user._id,
+                  name: order.user.name,
+                  email: order.user.email,
+                }
+              : {
+                  name: "Guest Customer",
+                  email: order.shippingAddress.email || "No email provided",
+                },
+            item: {
+              name: orderItem.name,
+              price: orderItem.price,
+              quantity: returnItem.quantity,
+              imageUrl: orderItem.imageUrl,
+            },
             reason: returnItem.reason,
             otherReason: returnItem.otherReason,
             status: returnItem.status,
+            comments: returnItem.comments,
+            refundMethod: returnItem.refundMethod,
             createdAt: returnItem.createdAt,
             updatedAt: returnItem.updatedAt,
+            isInternational: returnItem.isInternational,
+            photosUploaded: returnItem.photosUploaded,
           });
         }
       });
@@ -455,7 +497,150 @@ exports.getAllReturns = async (req, res) => {
 
     res.json(returns);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching all returns:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get returns for a specific order
+// @route   GET /api/orders/:id/returns
+// @access  Private
+exports.getOrderReturns = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Check if the order belongs to the user or if the user is an admin
+    if (
+      !req.user.isAdmin &&
+      (!order.user || order.user.toString() !== req.user._id.toString())
+    ) {
+      return res
+        .status(401)
+        .json({ message: "Not authorized to view returns for this order" });
+    }
+
+    // If the order has returns, process them for response
+    if (order.returns && order.returns.length > 0) {
+      const returnsData = order.returns.map((returnItem) => {
+        // Find the corresponding order item
+        const orderItem = order.orderItems.find(
+          (item) => item._id.toString() === returnItem.orderItem.toString()
+        );
+
+        return {
+          returnId: returnItem._id,
+          item: orderItem
+            ? {
+                name: orderItem.name,
+                price: orderItem.price,
+                quantity: returnItem.quantity,
+                imageUrl: orderItem.imageUrl,
+              }
+            : {
+                name: "Unknown Item",
+                quantity: returnItem.quantity,
+              },
+          reason: returnItem.reason,
+          otherReason: returnItem.otherReason,
+          status: returnItem.status,
+          comments: returnItem.comments,
+          refundMethod: returnItem.refundMethod,
+          createdAt: returnItem.createdAt,
+          updatedAt: returnItem.updatedAt,
+          isInternational: returnItem.isInternational,
+          photosUploaded: returnItem.photosUploaded,
+        };
+      });
+
+      return res.json(returnsData);
+    }
+
+    // If no returns
+    return res.json([]);
+  } catch (error) {
+    console.error("Error fetching order returns:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get order status history
+// @route   GET /api/orders/:id/status-history
+// @access  Private
+exports.getOrderStatusHistory = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate(
+      "statusHistory.updatedBy",
+      "name email"
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Check if user has permission to view this order
+    // Admin can view any order, regular users can only view their own orders
+    if (
+      !req.user.isAdmin &&
+      order.user &&
+      order.user.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Not authorized to view this order's status history",
+      });
+    }
+
+    // Return the populated status history, sorted by date (newest first)
+    const statusHistory = order.statusHistory || [];
+
+    // If the history is empty (for old orders), create a basic history from available data
+    if (statusHistory.length === 0) {
+      // Create initial entry from creation date
+      statusHistory.push({
+        status: "pending",
+        date: order.createdAt,
+        note: "Order created",
+      });
+
+      // Add paid status if applicable
+      if (order.isPaid) {
+        statusHistory.push({
+          status: "processing",
+          date: order.paidAt,
+          note: "Payment received",
+        });
+      }
+
+      // Add delivered status if applicable
+      if (order.deliveredAt) {
+        statusHistory.push({
+          status: "delivered",
+          date: order.deliveredAt,
+          note: "Order delivered",
+        });
+      }
+    }
+
+    // Sort by date, newest first
+    const sortedHistory = [...statusHistory].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+
+    res.json(sortedHistory);
+  } catch (error) {
+    console.error("Error getting order status history:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };

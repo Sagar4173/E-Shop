@@ -19,7 +19,7 @@ import {
   logout,
 } from "../../services/authService";
 import { User } from "../../types";
-import { getUserOrders } from "../../services/orderService";
+import { getMyOrders } from "../../services/orderService";
 import { format } from "date-fns";
 
 // Interface for order data from API
@@ -81,7 +81,7 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const data = await getUserOrders();
+        const data = await getMyOrders();
         setOrders(data);
         setLoading(false);
       } catch (error) {

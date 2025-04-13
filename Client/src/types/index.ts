@@ -73,9 +73,14 @@ export interface ShippingAddress {
 // Status history entry for order tracking
 export interface StatusHistoryEntry {
   status: string;
-  timestamp: string;
+  date: string; // Changed from timestamp to date to match backend
   note?: string;
-  user?: string; // ID or name of the user who made the status change
+  updatedBy?: {
+    // Changed from user to updatedBy with more detailed structure
+    _id: string;
+    name: string;
+    email?: string;
+  };
 }
 
 export interface Order {

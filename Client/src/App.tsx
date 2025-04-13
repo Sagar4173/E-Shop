@@ -19,7 +19,9 @@ import WishlistPage from "./pages/account/WishlistPage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import AdminProductsPage from "./pages/admin/ProductsPage";
 import AdminOrdersPage from "./pages/admin/OrdersPage";
+import AdminOrderDetailPage from "./pages/admin/OrderDetailPage";
 import AdminUsersPage from "./pages/admin/UsersPage";
+import AdminUserDetailPage from "./pages/admin/UserDetailPage";
 import ProductFormPage from "./pages/admin/ProductFormPage";
 import ReturnsPage from "./pages/admin/ReturnsPage";
 import AboutPage from "./pages/info/AboutPage";
@@ -79,8 +81,9 @@ const App = () => {
           <Route path="/admin" element={<DashboardPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
-          <Route path="/admin/orders/:id" element={<OrdersPage />} />
+          <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
           <Route path="/admin/products/new" element={<ProductFormPage />} />
           <Route
             path="/admin/products/edit/:id"

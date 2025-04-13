@@ -9,6 +9,11 @@ import {
   FaUsers,
   FaExchangeAlt,
   FaShippingFast,
+  FaFileInvoice,
+  FaDownload,
+  FaEnvelope,
+  FaCheckCircle,
+  FaSpinner,
 } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import {
@@ -22,6 +27,11 @@ import {
   sendShippingNotification,
 } from "../../services/email/emailService";
 import { format } from "date-fns";
+import {
+  downloadInvoice,
+  previewInvoice,
+  emailInvoice,
+} from "../../utils/invoiceGenerator";
 
 interface Order {
   _id: string;
@@ -41,6 +51,7 @@ interface Order {
     quantity: number;
     price: number;
   }>;
+  invoiceSent?: boolean;
 }
 
 const AdminOrdersPage = () => {
@@ -54,6 +65,13 @@ const AdminOrdersPage = () => {
   const [trackingNumber, setTrackingNumber] = useState<string>("");
   const [statusNote, setStatusNote] = useState<string>("");
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState<boolean>(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState<boolean>(false);
+  const [processingInvoices, setProcessingInvoices] = useState<boolean>(false);
+  const [progressCount, setProgressCount] = useState<number>(0);
+  const [totalProgress, setTotalProgress] = useState<number>(0);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   useEffect(() => {
     // Check if user is logged in and is an admin
@@ -125,6 +143,21 @@ const AdminOrdersPage = () => {
     setShowStatusModal(false);
   };
 
+  const openInvoiceModal = () => {
+    if (selectedOrders.length === 0) {
+      alert("Please select at least one order to manage invoices");
+      return;
+    }
+    setShowInvoiceModal(true);
+  };
+
+  const closeInvoiceModal = () => {
+    setShowInvoiceModal(false);
+    setProcessingInvoices(false);
+    setProgressCount(0);
+    setTotalProgress(0);
+  };
+
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
       // If it's a direct change from the dropdown (no modal)
@@ -189,6 +222,101 @@ const AdminOrdersPage = () => {
       closeStatusModal();
     } catch (error) {
       console.error("Error updating order status:", error);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string) => {
+    if (selectedOrders.includes(orderId)) {
+      setSelectedOrders(selectedOrders.filter((id) => id !== orderId));
+      setSelectAll(false);
+    } else {
+      setSelectedOrders([...selectedOrders, orderId]);
+    }
+  };
+
+  const handleSelectAllOrders = () => {
+    if (selectAll) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(currentOrders.map((order) => order._id));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Bulk invoice operations
+  const handleBulkDownloadInvoices = async () => {
+    try {
+      setProcessingInvoices(true);
+      setTotalProgress(selectedOrders.length);
+      setProgressCount(0);
+
+      for (let i = 0; i < selectedOrders.length; i++) {
+        const orderId = selectedOrders[i];
+        const order = orders.find((o) => o._id === orderId);
+
+        if (order) {
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Add a small delay to avoid browser issues
+          downloadInvoice(order);
+          setProgressCount(i + 1);
+        }
+      }
+
+      setSuccessMessage(
+        `Successfully downloaded ${selectedOrders.length} invoices`
+      );
+      setTimeout(() => setSuccessMessage(""), 3000);
+
+      // Keep the modal open to show success message
+      setTimeout(() => {
+        setProcessingInvoices(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error in bulk invoice download:", error);
+      alert("There was an error downloading some invoices. Please try again.");
+      setProcessingInvoices(false);
+    }
+  };
+
+  const handleBulkEmailInvoices = async () => {
+    try {
+      setProcessingInvoices(true);
+      setTotalProgress(selectedOrders.length);
+      setProgressCount(0);
+      let successCount = 0;
+
+      for (let i = 0; i < selectedOrders.length; i++) {
+        const orderId = selectedOrders[i];
+        const order = orders.find((o) => o._id === orderId);
+
+        if (order) {
+          const success = await emailInvoice(order);
+          if (success) {
+            successCount++;
+
+            // Mark order as having invoice sent
+            setOrders(
+              orders.map((o) =>
+                o._id === orderId ? { ...o, invoiceSent: true } : o
+              )
+            );
+          }
+          setProgressCount(i + 1);
+        }
+      }
+
+      setSuccessMessage(
+        `Successfully emailed ${successCount} out of ${selectedOrders.length} invoices`
+      );
+      setTimeout(() => setSuccessMessage(""), 5000);
+
+      // Keep the modal open to show success message
+      setTimeout(() => {
+        setProcessingInvoices(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error in bulk invoice emailing:", error);
+      alert("There was an error emailing some invoices. Please try again.");
+      setProcessingInvoices(false);
     }
   };
 
@@ -288,6 +416,87 @@ const AdminOrdersPage = () => {
         </div>
       )}
 
+      {/* Invoice Management Modal */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold mb-4">
+              Manage Invoices ({selectedOrders.length} orders selected)
+            </h2>
+
+            {successMessage && (
+              <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                <div className="flex">
+                  <FaCheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  <p>{successMessage}</p>
+                </div>
+              </div>
+            )}
+
+            {processingInvoices ? (
+              <div className="text-center py-4">
+                <FaSpinner className="animate-spin text-blue-600 h-8 w-8 mx-auto mb-4" />
+                <p className="text-gray-700 mb-2">Processing invoices...</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(progressCount / totalProgress) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {progressCount} of {totalProgress} completed
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border rounded-md p-4">
+                  <h3 className="font-medium mb-2 flex items-center">
+                    <FaDownload className="text-blue-600 mr-2" /> Download
+                    Invoices
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Download PDF invoices for the selected orders (will open
+                    multiple tabs/downloads)
+                  </p>
+                  <button
+                    onClick={handleBulkDownloadInvoices}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors w-full"
+                  >
+                    Download {selectedOrders.length} Invoices
+                  </button>
+                </div>
+
+                <div className="border rounded-md p-4">
+                  <h3 className="font-medium mb-2 flex items-center">
+                    <FaEnvelope className="text-blue-600 mr-2" /> Email Invoices
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Send invoice emails to customers for the selected orders
+                  </p>
+                  <button
+                    onClick={handleBulkEmailInvoices}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors w-full"
+                  >
+                    Email {selectedOrders.length} Invoices
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={closeInvoiceModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -363,6 +572,20 @@ const AdminOrdersPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               Orders Management
             </h1>
+
+            {/* Invoice management button */}
+            <button
+              onClick={openInvoiceModal}
+              disabled={selectedOrders.length === 0}
+              className={`flex items-center px-4 py-2 rounded ${
+                selectedOrders.length > 0
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              <FaFileInvoice className="mr-2" />
+              Manage Invoices ({selectedOrders.length})
+            </button>
           </div>
 
           {/* Filters */}
@@ -397,6 +620,14 @@ const AdminOrdersPage = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="w-8 px-6 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAllOrders}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -429,6 +660,12 @@ const AdminOrdersPage = () => {
                         </th>
                         <th
                           scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Invoice
+                        </th>
+                        <th
+                          scope="col"
                           className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                           Actions
@@ -438,7 +675,22 @@ const AdminOrdersPage = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {currentOrders.length > 0 ? (
                         currentOrders.map((order) => (
-                          <tr key={order._id}>
+                          <tr
+                            key={order._id}
+                            className={
+                              selectedOrders.includes(order._id)
+                                ? "bg-blue-50"
+                                : ""
+                            }
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={selectedOrders.includes(order._id)}
+                                onChange={() => handleSelectOrder(order._id)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">
                                 #
@@ -487,6 +739,23 @@ const AdminOrdersPage = () => {
                                 </button>
                               </div>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {order.invoiceSent ? (
+                                <div className="flex items-center text-xs text-green-600">
+                                  <FaCheckCircle className="mr-1" />
+                                  Sent
+                                </div>
+                              ) : order.isPaid ? (
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <FaFileInvoice className="mr-1" />
+                                  Ready
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-400">
+                                  Not paid
+                                </div>
+                              )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <Link
                                 to={`/admin/orders/${order._id}`}
@@ -494,13 +763,37 @@ const AdminOrdersPage = () => {
                               >
                                 <FaEye className="inline" />
                               </Link>
+                              <button
+                                onClick={() => {
+                                  if (order.isPaid) {
+                                    downloadInvoice(order);
+                                  } else {
+                                    alert(
+                                      "Cannot download invoice for unpaid order"
+                                    );
+                                  }
+                                }}
+                                className={`text-${
+                                  order.isPaid ? "blue" : "gray"
+                                }-600 hover:text-${
+                                  order.isPaid ? "blue" : "gray"
+                                }-900`}
+                                disabled={!order.isPaid}
+                                title={
+                                  order.isPaid
+                                    ? "Download Invoice"
+                                    : "Order not paid"
+                                }
+                              >
+                                <FaDownload className="inline ml-2" />
+                              </button>
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={8}
                             className="px-6 py-4 text-center text-gray-500"
                           >
                             No orders found

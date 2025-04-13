@@ -61,14 +61,14 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({
     }
   };
 
+  // Sort history with newest entries first, using date instead of timestamp
   const sortedHistory = [...statusHistory].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
       <h2 className="text-lg font-semibold mb-4">Order Status Timeline</h2>
-
       <div className="relative">
         <div className="absolute left-6 top-0 h-full border-l-2 border-gray-200 z-0"></div>
 
@@ -87,11 +87,16 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({
                   {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {formatDate(entry.timestamp)}
+                  {formatDate(entry.date)}
                 </div>
                 {entry.note && (
                   <div className="mt-1 text-sm text-gray-700 bg-gray-100 p-2 rounded">
                     {entry.note}
+                  </div>
+                )}
+                {entry.updatedBy && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Updated by: {entry.updatedBy.name}
                   </div>
                 )}
               </div>

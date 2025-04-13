@@ -58,6 +58,32 @@ const returnItemSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const statusHistorySchema = new mongoose.Schema({
+  status: {
+    type: String,
+    required: true,
+    enum: [
+      "pending",
+      "processing",
+      "shipped",
+      "delivered",
+      "returned",
+      "cancelled",
+    ],
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  note: {
+    type: String,
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+});
+
 const orderSchema = new mongoose.Schema(
   {
     user: {
@@ -143,6 +169,7 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    statusHistory: [statusHistorySchema],
     deliveredAt: {
       type: Date,
     },

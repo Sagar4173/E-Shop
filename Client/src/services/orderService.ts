@@ -1,5 +1,39 @@
 import api from "./api";
-import { ShippingAddress, Order } from "../types";
+
+export interface Order {
+  _id: string;
+  user: any; // Can be string (ID) or full user object
+  orderItems: any[];
+  shippingAddress: any;
+  billingAddress: any;
+  paymentMethod: string;
+  paymentResult: any;
+  shippingAmount: number;
+  taxAmount: number;
+  subtotal: number;
+  totalAmount: number;
+  isPaid: boolean;
+  paidAt: string | null;
+  isDelivered: boolean;
+  deliveredAt: string | null;
+  status: string;
+  trackingNumber?: string;
+  customerNote?: string;
+  adminNotes?: string;
+  shippedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StatusHistoryEntry {
+  status: string;
+  timestamp: string;
+  user?: {
+    _id: string;
+    name: string;
+  };
+  notes?: string;
+}
 
 interface OrderItem {
   product: string;
@@ -7,6 +41,18 @@ interface OrderItem {
   image: string;
   price: number;
   quantity: number;
+}
+
+interface ShippingAddress {
+  fullName: string;
+  address: string;
+  address2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+  email?: string;
 }
 
 interface CreateOrderData {
@@ -40,14 +86,23 @@ interface ReturnRequestData {
   isInternational?: boolean;
 }
 
-// Create a new order
-export const createOrder = async (
-  orderData: CreateOrderData
-): Promise<Order> => {
+// Admin: Get all orders
+export const getOrders = async () => {
   try {
-    // Use the guest endpoint for guest checkout
-    const endpoint = orderData.isGuestCheckout ? "/orders/guest" : "/orders";
-    const response = await api.post(endpoint, orderData);
+    const response = await api.get("/orders");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Export an alias for getOrders as getAllOrders for backward compatibility
+export const getAllOrders = getOrders;
+
+// Get order by ID
+export const getOrderById = async (id: string) => {
+  try {
+    const response = await api.get(`/orders/${id}`);
     return response.data;
   } catch (error) {
     throw error;
@@ -55,7 +110,7 @@ export const createOrder = async (
 };
 
 // Get user's orders
-export const getUserOrders = async () => {
+export const getMyOrders = async () => {
   try {
     const response = await api.get("/orders/myorders");
     return response.data;
@@ -64,10 +119,23 @@ export const getUserOrders = async () => {
   }
 };
 
-// Get order by ID
-export const getOrderById = async (id: string) => {
+// Create a new order
+export const createOrder = async (
+  orderData: CreateOrderData
+): Promise<Order> => {
   try {
-    const response = await api.get(`/orders/${id}`);
+    const endpoint = orderData.isGuestCheckout ? "/orders/guest" : "/orders";
+    const response = await api.post(endpoint, orderData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Create a guest order
+export const createGuestOrder = async (orderData: any) => {
+  try {
+    const response = await api.post("/orders/guest", orderData);
     return response.data;
   } catch (error) {
     throw error;
@@ -84,24 +152,11 @@ export const updateOrderToPaid = async (id: string, paymentResult: any) => {
   }
 };
 
-// Admin: Get all orders
-export const getAllOrders = async () => {
-  try {
-    const response = await api.get("/orders");
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
 // Admin: Update order status
 export const updateOrderStatus = async (
   id: string,
   status: string,
-  additionalData?: {
-    trackingNumber?: string;
-    note?: string;
-  }
+  additionalData: any = {}
 ) => {
   try {
     const response = await api.put(`/orders/${id}/status`, {
@@ -195,12 +250,12 @@ export const updateReturnStatus = async (
   orderId: string,
   returnId: string,
   status: string,
-  comments?: string
+  adminNotes?: string
 ) => {
   try {
     const response = await api.put(`/orders/${orderId}/return/${returnId}`, {
       status,
-      comments,
+      adminNotes,
     });
     return response.data;
   } catch (error) {
@@ -222,6 +277,17 @@ export const getAllReturns = async () => {
 export const getOrderReturns = async (id: string) => {
   try {
     const response = await api.get(`/orders/${id}/returns`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get orders for a specific user (admin only)
+export const getUserOrders = async (userId: string) => {
+  try {
+    // Updated to use the correct endpoint format
+    const response = await api.get(`/orders?userId=${userId}`);
     return response.data;
   } catch (error) {
     throw error;
