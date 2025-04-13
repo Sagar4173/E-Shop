@@ -11,24 +11,60 @@ exports.protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header
-      token = req.headers.authorization.split(" ")[1];
+      // Get token from header and trim any whitespace
+      token = req.headers.authorization.split(" ")[1]?.trim();
 
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Enhanced validation - check for null, undefined, or invalid format
+      if (
+        !token ||
+        token === "null" ||
+        token === "undefined" ||
+        token.length < 10
+      ) {
+        console.log("Rejected token:", token); // Log problematic token for debugging
+        return res
+          .status(401)
+          .json({ message: "Invalid authentication token format" });
+      }
 
-      // Find user by id (from token) and exclude password
-      req.user = await User.findById(decoded.id).select("-password");
+      try {
+        // Verify token with explicit error handling
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      next();
+        // Find user by id (from token) and exclude password
+        const user = await User.findById(decoded.id).select("-password");
+
+        if (!user) {
+          return res
+            .status(401)
+            .json({ message: "User not found or deactivated" });
+        }
+
+        req.user = user;
+        next();
+      } catch (jwtError) {
+        // Specific error handling for JWT verification
+        if (jwtError.name === "JsonWebTokenError") {
+          console.error("JWT Error:", jwtError.message);
+          return res
+            .status(401)
+            .json({ message: "Invalid authentication token" });
+        } else if (jwtError.name === "TokenExpiredError") {
+          return res
+            .status(401)
+            .json({ message: "Authentication token expired" });
+        } else {
+          throw jwtError; // Re-throw unexpected errors
+        }
+      }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: "Not authorized, token failed" });
+      console.error("Authentication error:", error.message);
+      return res.status(401).json({ message: "Authentication failed" });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+  } else {
+    return res
+      .status(401)
+      .json({ message: "No authentication token provided" });
   }
 };
 

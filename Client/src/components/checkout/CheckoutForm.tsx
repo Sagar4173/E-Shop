@@ -1,4 +1,4 @@
-import { useState, FormEvent, useContext, useEffect } from "react";
+import { useState, FormEvent, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CartContext } from "../../context/CartContext";
@@ -34,6 +34,9 @@ const CheckoutForm = ({
     getCartTotal: () => 0,
     clearCart: () => {},
   };
+
+  // Add ref to track if we're in the middle of checkout completion
+  const isCompletingOrder = useRef(false);
 
   const [processing, setProcessing] = useState<boolean>(false);
   const [succeeded, setSucceeded] = useState<boolean>(false);
@@ -155,6 +158,9 @@ const CheckoutForm = ({
     setProcessing(true);
 
     try {
+      // Set the flag to indicate we're completing an order
+      isCompletingOrder.current = true;
+
       // Create payment method
       const { error: paymentMethodError, paymentMethod } =
         await stripe.createPaymentMethod({
@@ -171,6 +177,7 @@ const CheckoutForm = ({
       if (paymentMethodError) {
         setError(paymentMethodError.message || "Payment failed");
         setProcessing(false);
+        isCompletingOrder.current = false;
         return;
       }
 
@@ -221,7 +228,7 @@ const CheckoutForm = ({
       try {
         // Update order as paid in the backend - will change status from pending to processing
         await fetch(
-          `${import.meta.env.VITE_API_URL}/api/orders/${createdOrder._id}/pay`,
+          `${import.meta.env.VITE_API_URL}/orders/${createdOrder._id}/pay`,
           {
             method: "PUT",
             headers: {
@@ -242,7 +249,17 @@ const CheckoutForm = ({
       }
 
       // Send order confirmation email
-      await sendOrderConfirmationEmail(createdOrder._id, createdOrder);
+      await sendOrderConfirmationEmail(createdOrder._id, {
+        ...createdOrder,
+        shippingAddress: {
+          ...createdOrder.shippingAddress,
+          email: formData.email, // Ensure email is explicitly set
+        },
+        paymentResult: {
+          ...createdOrder.paymentResult,
+          email_address: formData.email, // Ensure email is explicitly set
+        },
+      });
 
       // Set payment as successful
       setSucceeded(true);
@@ -261,6 +278,8 @@ const CheckoutForm = ({
           : "An unexpected error occurred during checkout"
       );
       setProcessing(false);
+      // Reset the flag if payment fails
+      isCompletingOrder.current = false;
     }
   };
 

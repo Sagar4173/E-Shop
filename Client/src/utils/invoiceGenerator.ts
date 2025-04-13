@@ -12,6 +12,10 @@ export const generateInvoice = (order: Order): Blob => {
   try {
     const doc = new jsPDF();
 
+    // Add a font that supports the Rupee symbol
+    // Using standard fonts and a text replacement approach
+    const currencySymbol = "Rs. "; // Using "Rs. " instead of "₹" to ensure compatibility
+
     // Format dates
     const dateCreated = format(new Date(order.createdAt), "dd MMM yyyy");
     const invoiceDate = format(new Date(), "dd MMM yyyy");
@@ -75,8 +79,8 @@ export const generateInvoice = (order: Order): Blob => {
       tableRows.push([
         item.name,
         item.quantity.toString(),
-        `₹${item.price.toFixed(2)}`,
-        `₹${itemTotal.toFixed(2)}`,
+        `${currencySymbol}${item.price.toFixed(2)}`,
+        `${currencySymbol}${itemTotal.toFixed(2)}`,
       ]);
     });
 
@@ -91,17 +95,22 @@ export const generateInvoice = (order: Order): Blob => {
         textColor: 255,
       },
       foot: [
-        ["", "", "Subtotal:", `₹${order.subtotal.toFixed(2)}`],
+        ["", "", "Subtotal:", `${currencySymbol}${order.subtotal.toFixed(2)}`],
         [
           "",
           "",
           "Shipping:",
           order.shippingAmount > 0
-            ? `₹${order.shippingAmount.toFixed(2)}`
+            ? `${currencySymbol}${order.shippingAmount.toFixed(2)}`
             : "Free",
         ],
-        ["", "", "Tax (18%):", `₹${order.taxAmount.toFixed(2)}`],
-        ["", "", "Total:", `₹${order.totalAmount.toFixed(2)}`],
+        [
+          "",
+          "",
+          "Tax (18%):",
+          `${currencySymbol}${order.taxAmount.toFixed(2)}`,
+        ],
+        ["", "", "Total:", `${currencySymbol}${order.totalAmount.toFixed(2)}`],
       ],
       footStyles: {
         fillColor: [255, 255, 255],
@@ -161,7 +170,7 @@ export const downloadInvoice = (order: Order) => {
     const blob = generateInvoice(order);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `invoice-${order._id.substring(0, 8)}.pdf`;
+    link.download = `invoice-${order._id.toString().substring(0, 8)}.pdf`;
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (error) {

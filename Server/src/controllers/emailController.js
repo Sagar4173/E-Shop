@@ -20,7 +20,7 @@ const emailTemplates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
           <h1>Thank You for Your Order!</h1>
-          <p>Order #${order._id.substring(0, 8).toUpperCase()}</p>
+          <p>Order #${order._id.toString().substring(0, 8).toUpperCase()}</p>
         </div>
         
         <div style="padding: 20px;">
@@ -114,7 +114,7 @@ const emailTemplates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
           <h1>Order Status Update</h1>
-          <p>Order #${order._id.substring(0, 8).toUpperCase()}</p>
+          <p>Order #${order._id.toString().substring(0, 8).toUpperCase()}</p>
         </div>
         
         <div style="padding: 20px;">
@@ -143,7 +143,7 @@ const emailTemplates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
           <h1>Your Order Has Shipped!</h1>
-          <p>Order #${order._id.substring(0, 8).toUpperCase()}</p>
+          <p>Order #${order._id.toString().substring(0, 8).toUpperCase()}</p>
         </div>
         
         <div style="padding: 20px;">
@@ -176,12 +176,16 @@ const emailTemplates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
           <h1>Return Request Received</h1>
-          <p>Return #${returnItem._id.substring(0, 8).toUpperCase()}</p>
+          <p>Return #${returnItem._id
+            .toString()
+            .substring(0, 8)
+            .toUpperCase()}</p>
         </div>
         
         <div style="padding: 20px;">
           <p>Hello ${order.shippingAddress.fullName || "Valued Customer"},</p>
           <p>We have received your return request for Order #${order._id
+            .toString()
             .substring(0, 8)
             .toUpperCase()}</p>
           
@@ -205,7 +209,10 @@ const emailTemplates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
           <h1>Return Status Update</h1>
-          <p>Return #${returnItem._id.substring(0, 8).toUpperCase()}</p>
+          <p>Return #${returnItem._id
+            .toString()
+            .substring(0, 8)
+            .toUpperCase()}</p>
         </div>
         
         <div style="padding: 20px;">
@@ -528,7 +535,7 @@ exports.sendOrderConfirmation = async (req, res) => {
     const emailContent = emailTemplates.orderConfirmation(order);
     const result = await sendEmail(
       recipient,
-      `Order Confirmation #${orderId.substring(0, 8).toUpperCase()}`,
+      `Order Confirmation #${orderId.toString().substring(0, 8).toUpperCase()}`,
       emailContent
     );
 
@@ -590,6 +597,7 @@ exports.sendOrderStatusUpdate = async (req, res) => {
     const result = await sendEmail(
       recipientEmail,
       `Order Status Update: ${status.toUpperCase()} - #${orderId
+        .toString()
         .substring(0, 8)
         .toUpperCase()}`,
       emailContent
@@ -656,7 +664,10 @@ exports.sendShippingNotification = async (req, res) => {
     );
     const result = await sendEmail(
       recipientEmail,
-      `Your Order Has Shipped! #${orderId.substring(0, 8).toUpperCase()}`,
+      `Your Order Has Shipped! #${orderId
+        .toString()
+        .substring(0, 8)
+        .toUpperCase()}`,
       emailContent
     );
 
@@ -725,7 +736,10 @@ exports.sendReturnRequestConfirmation = async (req, res) => {
     const emailContent = emailTemplates.returnRequest(order, returnItem);
     const result = await sendEmail(
       recipientEmail,
-      `Return Request Received #${returnId.substring(0, 8).toUpperCase()}`,
+      `Return Request Received #${returnId
+        .toString()
+        .substring(0, 8)
+        .toUpperCase()}`,
       emailContent
     );
 
@@ -800,6 +814,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
     const result = await sendEmail(
       recipientEmail,
       `Return Status Update: ${status.toUpperCase()} #${returnId
+        .toString()
         .substring(0, 8)
         .toUpperCase()}`,
       emailContent

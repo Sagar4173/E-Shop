@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import { CartContext } from "../../context/CartContext";
@@ -20,6 +20,9 @@ const CheckoutPage = () => {
     getCartTotal: () => 0,
     clearCart: () => {},
   };
+
+  // Add a ref to track if we're completing checkout
+  const isCompletingCheckout = useRef(false);
 
   const [clientSecret, setClientSecret] = useState("");
   const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null);
@@ -76,9 +79,23 @@ const CheckoutPage = () => {
   // Create payment intent when component mounts
   useEffect(() => {
     const initializePayment = async () => {
-      if (cartItems.length === 0) {
+      // Check if we're in the midst of completing checkout based on localStorage
+      const isCheckoutComplete =
+        localStorage.getItem("checkoutComplete") === "true";
+
+      // Only redirect to products if not completing checkout and cart is empty
+      if (
+        cartItems.length === 0 &&
+        !isCompletingCheckout.current &&
+        !isCheckoutComplete
+      ) {
         navigate("/products");
         return;
+      }
+
+      // Clear the checkout complete flag once we've passed the redirect check
+      if (isCheckoutComplete) {
+        localStorage.removeItem("checkoutComplete");
       }
 
       // Skip trying to create a payment intent if server is already known to be down
@@ -267,10 +284,16 @@ const CheckoutPage = () => {
   const handleTestModeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Completing order in test mode");
-    // In test mode, just redirect to order confirmation
-    navigate("/order-confirmation");
+
+    // Set both the ref flag and a more permanent localStorage flag
+    isCompletingCheckout.current = true;
+    localStorage.setItem("checkoutComplete", "true");
+
     // Clear the cart after successful order
     clearCart();
+
+    // In test mode, just redirect to order confirmation
+    navigate("/order-confirmation");
   };
 
   // Handle guest info input changes
