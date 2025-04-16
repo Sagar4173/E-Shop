@@ -1,11 +1,9 @@
-// Debug logging to help identify the issue
+// Simple initialization log without exposing sensitive information
 console.log("Payment Controller Initialization");
-console.log("Environment variables:", {
+console.log("Environment check:", {
   NODE_ENV: process.env.NODE_ENV,
-  STRIPE_KEY_EXISTS: !!process.env.STRIPE_SECRET_KEY,
-  STRIPE_KEY_LENGTH: process.env.STRIPE_SECRET_KEY
-    ? process.env.STRIPE_SECRET_KEY.length
-    : 0,
+  STRIPE_KEYS_CONFIGURED:
+    !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_PUBLISHABLE_KEY,
 });
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -20,11 +18,11 @@ if (!stripeSecretKey) {
   // We'll handle the missing key in the route handlers
 } else {
   try {
-    console.log("Initializing Stripe with the secret key");
+    console.log("Initializing Stripe");
     stripe = require("stripe")(stripeSecretKey);
     console.log("Stripe initialized successfully");
   } catch (error) {
-    console.error("Failed to initialize Stripe:", error);
+    console.error("Failed to initialize Stripe");
   }
 }
 

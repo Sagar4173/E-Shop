@@ -139,9 +139,7 @@ exports.updateOrderToPaid = async (req, res) => {
           const axios = require("axios");
 
           // Define the base URL for the API
-          const baseUrl =
-            process.env.BASE_URL ||
-            `http://localhost:${process.env.PORT || 5000}`;
+          const baseUrl = process.env.BASE_URL;
 
           // Call the email API to send the invoice
           const emailResponse = await axios.post(

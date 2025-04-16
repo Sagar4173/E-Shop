@@ -41,9 +41,7 @@ exports.registerUser = async (req, res) => {
     try {
       // Call the email service to send verification OTP
       const emailResponse = await fetch(
-        `${
-          process.env.BASE_URL || "http://localhost:5000"
-        }/api/emails/verification-otp`,
+        `${process.env.BASE_URL}/api/emails/verification-otp`,
         {
           method: "POST",
           headers: {
@@ -321,9 +319,7 @@ exports.forgotPassword = async (req, res) => {
     try {
       // Call the email service to send password reset OTP
       const emailResponse = await fetch(
-        `${
-          process.env.BASE_URL || "http://localhost:5000"
-        }/api/emails/password-reset-otp`,
+        `${process.env.BASE_URL}/api/emails/password-reset-otp`,
         {
           method: "POST",
           headers: {
@@ -656,9 +652,7 @@ exports.verifyEmail = async (req, res) => {
       try {
         // Call the email service to send welcome email
         const emailResponse = await fetch(
-          `${
-            process.env.BASE_URL || "http://localhost:5000"
-          }/api/emails/welcome`,
+          `${process.env.BASE_URL}/api/emails/welcome`,
           {
             method: "POST",
             headers: {
@@ -777,9 +771,7 @@ exports.resendVerification = async (req, res) => {
     try {
       // Call the email service to send verification OTP
       const emailResponse = await fetch(
-        `${
-          process.env.BASE_URL || "http://localhost:5000"
-        }/api/emails/verification-otp`,
+        `${process.env.BASE_URL}/api/emails/verification-otp`,
         {
           method: "POST",
           headers: {

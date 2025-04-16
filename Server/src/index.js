@@ -37,8 +37,9 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Log environment variables (excluding sensitive info)
 console.log("Environment variables:", {
   NODE_ENV: process.env.NODE_ENV,
-  STRIPE_KEY_EXISTS: !!process.env.STRIPE_SECRET_KEY,
-  STRIPE_KEY_LENGTH: process.env.STRIPE_SECRET_KEY?.length,
+  STRIPE_KEYS_CONFIGURED:
+    !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_PUBLISHABLE_KEY,
+  MONGODB_CONNECTED: !!process.env.MONGODB_URI,
 });
 
 // Enhanced MongoDB connection with retry and DNS fallback logic
@@ -169,7 +170,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
