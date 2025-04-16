@@ -2,7 +2,11 @@ import React, { useState, FormEvent, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaLock, FaKey, FaArrowLeft } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
-import { verifyOTP, resetPassword } from "../../services/authService";
+import {
+  verifyOTP,
+  resetPassword,
+  requestPasswordReset,
+} from "../../services/authService";
 
 const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -55,31 +59,17 @@ const ResetPasswordPage: React.FC = () => {
     setError(null);
 
     try {
-      // Make sure we don't have a duplicate "api" in the path
-      // Use a direct URL to the backend to avoid the path issues
-      const response = await fetch(
-        "http://localhost:5000/api/users/forgot-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: formData.email,
-          }),
-        }
-      );
+      // Use the proper auth service instead of direct fetch with hardcoded URL
+      const response = await requestPasswordReset(formData.email);
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.success) {
         setSuccessMessage(
           "New verification code sent! Please check your email."
         );
         setResendCooldown(60); // Set 60 seconds cooldown
       } else {
         setError(
-          data.message ||
+          response.message ||
             "Failed to resend verification code. Please try again."
         );
       }
