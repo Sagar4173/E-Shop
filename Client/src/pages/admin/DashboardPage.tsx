@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaHome,
@@ -24,7 +24,7 @@ import { getProducts } from "../../services/productService";
 interface DashboardStat {
   title: string;
   value: string | number;
-  icon: JSX.Element;
+  icon: ReactNode;
   color: string;
 }
 

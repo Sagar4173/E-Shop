@@ -10,6 +10,12 @@ import {
 } from "../../services/productService";
 import { FaFilter, FaTimes } from "react-icons/fa";
 
+// Define interface for API response to handle different formats
+interface ProductsResponse {
+  products: Product[];
+  totalProducts?: number;
+}
+
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,12 +77,22 @@ const ProductsPage = () => {
           queryParams.max = maxPrice;
         }
 
+        // Use a more flexible approach to handle API response format
         const data = await getProducts(queryParams);
 
-        if (data.products && Array.isArray(data.products)) {
+        // Define a type guard to check if the response has products property
+        const hasProductsProperty = (
+          obj: any
+        ): obj is { products: Product[]; totalProducts?: number } => {
+          return obj && typeof obj === "object" && "products" in obj;
+        };
+
+        if (hasProductsProperty(data)) {
+          // Handle response with products property
           setProducts(data.products);
           setTotalProducts(data.totalProducts || data.products.length);
         } else if (Array.isArray(data)) {
+          // Handle array response
           setProducts(data);
           setTotalProducts(data.length);
         } else {

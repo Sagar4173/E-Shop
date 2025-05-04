@@ -1,5 +1,5 @@
 import api from "./api";
-import { Product } from "../types";
+import { Product, Review } from "../types";
 
 // Get all products with optional filtering
 export const getProducts = async (params?: any): Promise<Product[]> => {

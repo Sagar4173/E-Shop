@@ -4,7 +4,7 @@ import Layout from "../../components/layout/Layout";
 import { CartContext } from "../../context/CartContext";
 import CheckoutForm from "../../components/checkout/CheckoutForm";
 import OrderSummary from "../../components/checkout/OrderSummary";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import {
   createPaymentIntent,
@@ -217,13 +217,13 @@ const CheckoutPage = () => {
   }, [isGuestCheckout, clientSecret, isTestMode, loading]);
 
   const appearance = {
-    theme: "stripe",
+    theme: "stripe" as const, // Use const assertion for correct typing
     variables: {
       colorPrimary: "#3b82f6", // blue-500
     },
   };
 
-  const options = {
+  const options: StripeElementsOptions = {
     clientSecret,
     appearance,
   };

@@ -20,6 +20,8 @@ const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [featuredProductsLoading, setFeaturedProductsLoading] =
+    useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [email, setEmail] = useState<string>("");
@@ -95,8 +97,19 @@ const HomePage = () => {
         setFeaturedProducts(featuredData);
 
         // Load new arrivals (latest products)
-        const { products } = await getProducts({ sort: "newest", limit: 8 });
-        setNewArrivals(products || []);
+        try {
+          setFeaturedProductsLoading(true);
+          const data = await getProducts({ sort: "newest", limit: 8 });
+          // Handle both response formats (array or object with products property)
+          const products = Array.isArray(data)
+            ? data
+            : (data as any).products || [];
+          setFeaturedProducts(products);
+          setFeaturedProductsLoading(false);
+        } catch (error) {
+          setError("Failed to load products");
+          setLoading(false);
+        }
 
         setLoading(false);
       } catch (err) {

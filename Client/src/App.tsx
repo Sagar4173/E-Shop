@@ -10,7 +10,6 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
-import AccountPage from "./pages/account/AccountPage";
 import OrdersPage from "./pages/account/OrdersPage";
 import ProfilePage from "./pages/account/ProfilePage";
 import AddressesPage from "./pages/account/AddressesPage";

@@ -23,6 +23,8 @@ export interface Order {
   shippedAt?: string;
   createdAt: string;
   updatedAt: string;
+  invoiceSent?: boolean;
+  hasReturn?: boolean;
 }
 
 export interface StatusHistoryEntry {

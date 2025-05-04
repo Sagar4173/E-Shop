@@ -34,16 +34,16 @@ const ResetPasswordPage: React.FC = () => {
 
   // Cooldown timer for resend button
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: number | null = null;
 
     if (resendCooldown > 0) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setResendCooldown((prev) => prev - 1);
       }, 1000);
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (interval) window.clearInterval(interval);
     };
   }, [resendCooldown]);
 

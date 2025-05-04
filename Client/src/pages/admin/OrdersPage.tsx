@@ -21,7 +21,11 @@ import {
   getCurrentUser,
   logout,
 } from "../../services/authService";
-import { getAllOrders, updateOrderStatus } from "../../services/orderService";
+import {
+  getAllOrders,
+  updateOrderStatus,
+  Order as OrderType,
+} from "../../services/orderService";
 import {
   sendOrderStatusUpdateEmail,
   sendShippingNotification,
@@ -33,35 +37,14 @@ import {
   emailInvoice,
 } from "../../utils/invoiceGenerator";
 
-interface Order {
-  _id: string;
-  user: {
-    name: string;
-    email: string;
-  };
-  createdAt: string;
-  totalAmount: number;
-  isPaid: boolean;
-  paidAt: string;
-  status: string;
-  trackingNumber?: string;
-  deliveredAt: string;
-  orderItems: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  invoiceSent?: boolean;
-}
-
 const AdminOrdersPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderType[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [ordersPerPage] = useState<number>(10);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null);
   const [trackingNumber, setTrackingNumber] = useState<string>("");
   const [statusNote, setStatusNote] = useState<string>("");
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
@@ -129,7 +112,7 @@ const AdminOrdersPage = () => {
     }
   };
 
-  const openStatusModal = (order: Order) => {
+  const openStatusModal = (order: OrderType) => {
     setSelectedOrder(order);
     setTrackingNumber(order.trackingNumber || "");
     setStatusNote("");
@@ -255,9 +238,16 @@ const AdminOrdersPage = () => {
         const order = orders.find((o) => o._id === orderId);
 
         if (order) {
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Add a small delay to avoid browser issues
-          downloadInvoice(order);
-          setProgressCount(i + 1);
+          try {
+            // Cast the order to match the expected type for downloadInvoice
+            downloadInvoice(order as unknown as import("../../types").Order);
+            setProgressCount((prev) => prev + 1);
+          } catch (err) {
+            console.error(
+              `Error downloading invoice for order ${order._id}:`,
+              err
+            );
+          }
         }
       }
 
@@ -289,7 +279,9 @@ const AdminOrdersPage = () => {
         const order = orders.find((o) => o._id === orderId);
 
         if (order) {
-          const success = await emailInvoice(order);
+          const success = await emailInvoice(
+            order as unknown as import("../../types").Order
+          );
           if (success) {
             successCount++;
 
@@ -766,7 +758,10 @@ const AdminOrdersPage = () => {
                               <button
                                 onClick={() => {
                                   if (order.isPaid) {
-                                    downloadInvoice(order);
+                                    // Cast the order to match the expected type for downloadInvoice
+                                    downloadInvoice(
+                                      order as unknown as import("../../types").Order
+                                    );
                                   } else {
                                     alert(
                                       "Cannot download invoice for unpaid order"

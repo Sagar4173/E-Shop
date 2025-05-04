@@ -16,7 +16,7 @@ import {
   FaMoneyBillWave,
   FaExchangeAlt,
 } from "react-icons/fa";
-import { Order, OrderItem } from "../../types";
+import { Order } from "../../types";
 
 // Interface for return item selection
 interface ReturnItemSelection {

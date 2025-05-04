@@ -42,7 +42,6 @@ const CheckoutForm = ({
   const [processing, setProcessing] = useState<boolean>(false);
   const [succeeded, setSucceeded] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [addressValidated, setAddressValidated] = useState<boolean>(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(
     null
   );
@@ -81,7 +80,6 @@ const CheckoutForm = ({
       !formData.address.state ||
       !formData.address.postal_code
     ) {
-      setAddressValidated(false);
       setValidationMessage("Please fill in all required address fields");
       return false;
     }
@@ -97,7 +95,6 @@ const CheckoutForm = ({
 
     const regex = postalRegexByCountry[formData.address.country];
     if (regex && !regex.test(formData.address.postal_code)) {
-      setAddressValidated(false);
       setValidationMessage(
         `Invalid postal code format for ${formData.address.country}`
       );
@@ -107,13 +104,11 @@ const CheckoutForm = ({
     // Phone validation
     const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
     if (!phoneRegex.test(formData.phone)) {
-      setAddressValidated(false);
       setValidationMessage("Please enter a valid phone number");
       return false;
     }
 
     // All validations passed
-    setAddressValidated(true);
     setValidationMessage("Address validated successfully!");
     return true;
   };
@@ -194,14 +189,16 @@ const CheckoutForm = ({
           name: item.name,
           quantity: item.quantity,
           price: item.price,
-          imageUrl: item.imageUrl,
+          image: item.imageUrl, // Changed imageUrl to image to match OrderItem interface
           product: item.id, // Changed from item._id to item.id - this is how IDs are stored in the cart
         })),
         shippingAddress: {
           fullName: formData.name,
-          street:
+          address:
             formData.address.line1 +
-            (formData.address.line2 ? ", " + formData.address.line2 : ""), // Changed from 'address' to 'street' to match schema
+            (formData.address.line2 ? ", " + formData.address.line2 : ""),
+          street: formData.address.line1, // Include both address and street for compatibility
+          address2: formData.address.line2 || undefined,
           city: formData.address.city,
           state: formData.address.state,
           postalCode: formData.address.postal_code,
@@ -250,6 +247,8 @@ const CheckoutForm = ({
       // Send order confirmation email
       await sendOrderConfirmationEmail(createdOrder._id, {
         ...createdOrder,
+        paidAt: createdOrder.paidAt || undefined, // Convert null to undefined if needed
+        deliveredAt: createdOrder.deliveredAt || undefined, // Convert null to undefined
         shippingAddress: {
           ...createdOrder.shippingAddress,
           email: formData.email, // Ensure email is explicitly set
@@ -303,18 +302,22 @@ const CheckoutForm = ({
   const cardElementRef = useRef<HTMLDivElement>(null);
 
   // Handle the case when the card element receives or loses focus
-  const handleCardElementFocus = (event: { focused: boolean }) => {
+  const handleCardElementFocus = (event: { elementType: string }) => {
     if (cardElementRef.current) {
-      if (event.focused) {
-        // When focused, ensure proper aria attributes
+      // When using Stripe's actual events, we don't get focused property
+      // So we'll determine focus state based on presence of a class
+      const isFocused = cardElementRef.current.classList.contains("ring-2");
+
+      if (!isFocused) {
+        // Element is getting focus
         cardElementRef.current.setAttribute(
           "aria-describedby",
           "card-element-errors"
         );
-        // Add a focus class to improve visual focus indicator since we can't style the iframe directly
+        // Add a focus class to improve visual focus indicator
         cardElementRef.current.classList.add("ring-2", "ring-blue-500");
       } else {
-        // Remove focus styling when focus is lost
+        // Element is losing focus
         cardElementRef.current.classList.remove("ring-2", "ring-blue-500");
       }
     }

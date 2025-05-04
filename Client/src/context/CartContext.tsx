@@ -26,7 +26,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     const checkUser = () => {
       if (isAuthenticated()) {
         const user = getCurrentUser();
-        setCurrentUserId(user?.id || user?._id || null);
+        setCurrentUserId(user?._id || null); // Only use _id property which exists in User type
       } else {
         setCurrentUserId(null);
       }
@@ -129,10 +129,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         return updatedItems;
       } else {
+        // Ensure we have a valid string ID
+        const productId = (product._id || product.id || "").toString();
+
         return [
           ...prevItems,
           {
-            id: product._id || product.id,
+            id: productId,
             name: product.name,
             price: product.price,
             quantity,

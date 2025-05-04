@@ -5,12 +5,14 @@ interface SearchBarProps {
   onSearch: (searchTerm: string) => void;
   initialValue?: string;
   placeholder?: string;
+  className?: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   initialValue = "",
   placeholder = "Search products...",
+  className = "",
 }) => {
   const [searchTerm, setSearchTerm] = useState(initialValue);
 
@@ -42,7 +44,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, [searchTerm, onSearch, initialValue]);
 
   return (
-    <form className="relative w-full md:w-80" onSubmit={handleSubmit}>
+    <form
+      className={`relative w-full md:w-80 ${className}`}
+      onSubmit={handleSubmit}
+    >
       <input
         type="text"
         value={searchTerm}

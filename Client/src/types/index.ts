@@ -41,6 +41,10 @@ export interface User {
   name: string;
   email: string;
   isAdmin: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  phone?: string;
+  isGuest?: boolean;
 }
 
 export interface UserProfile extends User {
@@ -62,6 +66,8 @@ export interface CartItem {
 export interface ShippingAddress {
   fullName: string;
   address: string;
+  street?: string; // Alternative to address in some contexts
+  address2?: string; // Optional secondary address line
   city: string;
   state: string;
   postalCode: string;
@@ -93,8 +99,12 @@ export interface Order {
     quantity: number;
     price: number;
     imageUrl?: string;
+    color?: string;
+    size?: string;
+    sku?: string;
   }>;
   shippingAddress: ShippingAddress;
+  billingAddress?: ShippingAddress;
   paymentMethod: string;
   paymentResult?: {
     id: string;
@@ -111,12 +121,17 @@ export interface Order {
   status: string;
   statusHistory?: StatusHistoryEntry[];
   trackingNumber?: string;
+  shippingMethod?: string;
+  shippedAt?: string;
   isDelivered: boolean;
   deliveredAt?: string;
   createdAt: string;
   updatedAt: string;
   hasReturn?: boolean;
   returns?: Array<any>;
+  customerNote?: string;
+  adminNotes?: string;
+  isRefunded?: boolean;
 }
 
 // Payment Types

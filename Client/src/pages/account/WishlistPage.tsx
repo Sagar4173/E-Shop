@@ -82,9 +82,11 @@ const WishlistPage = () => {
         const profileData = await getUserProfile();
 
         // Fetch wishlist items
-        const items = await getWishlistItems(userData._id);
-        setWishlistItems(items || []);
-        setDisplayedItems(items || []);
+        if (userData && userData._id) {
+          const items = await getWishlistItems(userData._id);
+          setWishlistItems(items || []);
+          setDisplayedItems(items || []);
+        }
 
         setLoading(false);
       } catch (error) {

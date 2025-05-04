@@ -22,6 +22,12 @@ import {
 import { getProducts, deleteProduct } from "../../services/productService";
 import { Product } from "../../types";
 
+// Define interface for products API response
+interface ProductsResponse {
+  products: Product[];
+  totalProducts?: number;
+}
+
 const ProductsPage = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,22 +59,21 @@ const ProductsPage = () => {
     // Fetch products
     const fetchProducts = async () => {
       try {
-        const data = await getProducts();
-        setProducts(data.products || data); // Handle both response formats
+        const data = (await getProducts()) as ProductsResponse | Product[];
+
+        // Handle both response formats
+        const productsList = Array.isArray(data) ? data : data.products;
+        setProducts(productsList);
 
         // Extract unique categories
         const uniqueCategories = [
           "All Categories",
           ...Array.from(
-            new Set(
-              (data.products || data).map(
-                (product: Product) => product.category
-              )
-            )
+            new Set(productsList.map((product) => product.category))
           ),
-        ];
-        setCategories(uniqueCategories);
+        ] as string[];
 
+        setCategories(uniqueCategories);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching products:", error);

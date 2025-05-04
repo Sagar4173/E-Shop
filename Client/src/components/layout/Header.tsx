@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaShoppingCart,
   FaUser,
@@ -20,6 +20,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [wishlistCount, setWishlistCount] = useState<number>(0);
 
@@ -32,8 +33,10 @@ const Header = () => {
 
         // Fetch wishlist count
         try {
-          const wishlistItems = await getWishlistItems(userData._id);
-          setWishlistCount(wishlistItems?.length || 0);
+          if (userData && userData._id) {
+            const wishlistItems = await getWishlistItems(userData._id);
+            setWishlistCount(wishlistItems?.length || 0);
+          }
         } catch (error) {
           console.error("Failed to fetch wishlist count:", error);
         }
@@ -46,7 +49,7 @@ const Header = () => {
     const handleStorageChange = async (event: StorageEvent) => {
       if (event.key === "wishlist") {
         const userData = getCurrentUser();
-        if (userData) {
+        if (userData && userData._id) {
           try {
             const wishlistItems = await getWishlistItems(userData._id);
             setWishlistCount(wishlistItems?.length || 0);
@@ -68,11 +71,13 @@ const Header = () => {
   useEffect(() => {
     if (isAuthenticated()) {
       const userData = getCurrentUser();
-      getWishlistItems(userData._id)
-        .then((items) => setWishlistCount(items?.length || 0))
-        .catch((error) =>
-          console.error("Failed to refresh wishlist count:", error)
-        );
+      if (userData && userData._id) {
+        getWishlistItems(userData._id)
+          .then((items) => setWishlistCount(items?.length || 0))
+          .catch((error) =>
+            console.error("Failed to refresh wishlist count:", error)
+          );
+      }
     }
   }, [location.pathname]);
 
@@ -236,6 +241,10 @@ const Header = () => {
           <SearchBar
             className="max-w-3xl mx-auto"
             placeholder="Search for products, brands, and more..."
+            onSearch={(term) => {
+              navigate(`/products?search=${encodeURIComponent(term)}`);
+              setSearchOpen(false);
+            }}
           />
         </div>
       )}

@@ -152,7 +152,7 @@ const OrderConfirmationPage = () => {
           <p className="text-gray-600">
             A confirmation email has been sent to{" "}
             <span className="font-medium">
-              {order.user?.email ||
+              {(typeof order.user === "object" && order.user?.email) ||
                 order.paymentResult?.email_address ||
                 order.shippingAddress?.email ||
                 "your email address"}

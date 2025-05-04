@@ -1,7 +1,9 @@
 import axios from "axios";
 
-// Create axios instance with base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+// Create axios instance with base URL from environment variables or use relative path in production
+const isProduction = import.meta.env.MODE === "production";
+// In production with monorepo deployment, the API is accessible at /api on the same domain
+const API_BASE_URL = isProduction ? "/api" : import.meta.env.VITE_API_URL;
 
 /**
  * Validate a JWT token's basic structure (not cryptographic validation)
@@ -23,8 +25,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  // Increase timeout for API requests
-  timeout: 120000, // 2 minutes
+  // Increase timeout for API requests - shorter in production to improve UX
+  timeout: isProduction ? 60000 : 120000, // 1 minute in production, 2 minutes in development
 });
 
 // Add a request interceptor to include auth token in headers
@@ -47,7 +49,7 @@ api.interceptors.request.use(
 
     // Set extended timeout specifically for payment-related endpoints
     if (config.url?.includes("/payments/")) {
-      config.timeout = 180000; // 3 minutes for payment endpoints
+      config.timeout = isProduction ? 90000 : 180000; // 1.5 minutes in production, 3 minutes in development
     }
 
     return config;
@@ -69,10 +71,9 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
 
-      // Optionally redirect to login page if authentication fails
-      if (window.location.pathname !== "/login") {
-        // Uncomment the line below to enable automatic redirect to login
-        // window.location.href = '/login';
+      // In production, automatically redirect to login page
+      if (isProduction && window.location.pathname !== "/login") {
+        window.location.href = "/login";
       }
     }
 
@@ -88,10 +89,20 @@ api.interceptors.response.use(
           "The request took too long to complete. Please try again later."
         );
       }
-      throw new Error("No response received from server");
+
+      // Custom error message for production vs development
+      throw new Error(
+        isProduction
+          ? "Unable to connect to server. Please check your internet connection."
+          : "No response received from server"
+      );
     } else {
       // Something happened in setting up the request that triggered an Error
-      throw new Error("Error setting up the request");
+      throw new Error(
+        isProduction
+          ? "Something went wrong. Please try again."
+          : "Error setting up the request"
+      );
     }
   }
 );

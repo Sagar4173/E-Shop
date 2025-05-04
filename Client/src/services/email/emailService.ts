@@ -20,7 +20,9 @@ export const sendOrderConfirmationEmail = async (
   try {
     // Get recipient email from available sources
     const recipientEmail =
-      order.user?.email ||
+      (typeof order.user === "object" && order.user
+        ? order.user.email
+        : undefined) ||
       order.shippingAddress?.email ||
       order.paymentResult?.email_address;
 
