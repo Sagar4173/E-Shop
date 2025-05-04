@@ -16,12 +16,14 @@ export default defineConfig(({ mode }) => {
     base: "/", // Explicitly set the base path for Vercel deployment
     build: {
       minify: isProduction ? "esbuild" : false, // Changed from terser to esbuild
-      terserOptions: isProduction ? {
-        compress: {
-          drop_console: true, // Remove console logs in production
-          drop_debugger: true,
-        },
-      } : undefined,
+      terserOptions: isProduction
+        ? {
+            compress: {
+              drop_console: true, // Remove console logs in production
+              drop_debugger: true,
+            },
+          }
+        : undefined,
       rollupOptions: {
         output: {
           manualChunks: {
