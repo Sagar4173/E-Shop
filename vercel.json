@@ -1,22 +1,39 @@
 {
   "version": 2,
-  "buildCommand": "cd Client && npm install && npm run build",
-  "outputDirectory": "Client/dist",
-  "installCommand": "npm install",
-  "builds": [{ "src": "Server/src/index.js", "use": "@vercel/node" }],
+  "builds": [
+    {
+      "src": "Client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "npm install && npm run build"
+      }
+    },
+    {
+      "src": "Server/src/index.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "Server/src/index.js" },
-    { "src": "/uploads/(.*)", "dest": "Server/src/index.js" },
+    {
+      "src": "/api/(.*)",
+      "dest": "/Server/src/index.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/Server/src/index.js"
+    },
     {
       "src": "/assets/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/assets/$1"
+      "dest": "/Client/dist/assets/$1"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|webp|json|txt|woff|woff2)$)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/$1"
+      "src": "/(.*)\\.(?:js|css|svg|jpg|jpeg|png|gif|ico|json|woff|woff2|ttf|otf)$",
+      "dest": "/Client/dist/$1.$2"
     },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/(.*)",
+      "dest": "/Client/dist/index.html"
+    }
   ]
 }
