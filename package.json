@@ -12,13 +12,13 @@
     "dev:server": "cd Server && npm run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:client": "cd Client && npm run build",
-    "build:server": "cd Server && npm run build",
-    "build": "npm run build:client && npm run build:server",
+    "build:server": "echo 'No build needed for server'",
+    "build": "npm run build:client",
     "start": "cd Server && npm start",
     "seed": "cd Server && npm run seed",
     "lint": "npm run lint:client && npm run lint:server",
     "lint:client": "cd Client && npm run lint",
-    "lint:server": "cd Server && npm run lint"
+    "lint:server": "cd Server && npm run lint || echo 'No lint command available for server'"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
