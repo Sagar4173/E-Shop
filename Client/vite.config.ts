@@ -13,14 +13,15 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       isProduction && compression(), // Only enable compression in production
     ],
+    base: "/", // Explicitly set the base path for Vercel deployment
     build: {
-      minify: isProduction ? "terser" : false,
-      terserOptions: {
+      minify: isProduction ? "esbuild" : false, // Changed from terser to esbuild
+      terserOptions: isProduction ? {
         compress: {
-          drop_console: isProduction, // Remove console logs in production
-          drop_debugger: isProduction,
+          drop_console: true, // Remove console logs in production
+          drop_debugger: true,
         },
-      },
+      } : undefined,
       rollupOptions: {
         output: {
           manualChunks: {
