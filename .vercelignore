@@ -1,0 +1,9 @@
+README.md
+.git
+.gitignore
+.env.sample
+*/node_modules
+*/.git
+Server/uploads/*
+!Server/uploads/.gitkeep
+node_modules

@@ -2,13 +2,15 @@
   "version": 2,
   "buildCommand": "cd Client && npm install && npm run build",
   "outputDirectory": "Client/dist",
+  "installCommand": "npm install",
   "framework": "vite",
   "builds": [
     {
       "src": "Client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "dist",
+        "buildCommand": "cd ../Client && npm run build"
       }
     },
     {
