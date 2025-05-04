@@ -2,26 +2,19 @@
   "version": 2,
   "buildCommand": "cd Client && npm install && npm run build",
   "outputDirectory": "Client/dist",
+  "framework": "vite",
   "builds": [
-    { 
-      "src": "Server/src/index.js", 
-      "use": "@vercel/node"
-    }
+    { "src": "Server/src/index.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "Server/src/index.js" },
     { "src": "/uploads/(.*)", "dest": "Server/src/index.js" },
-    {
-      "src": "/assets/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|webp|json|txt|woff|woff2)$)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/$1"
-    },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/assets/(.*)", "dest": "Client/dist/assets/$1" },
+    { "src": "/(.*)\\.js", "dest": "Client/dist/$1.js" },
+    { "src": "/(.*)\\.css", "dest": "Client/dist/$1.css" },
+    { "src": "/(.*)\\.svg", "dest": "Client/dist/$1.svg" },
+    { "src": "/(.*)\\.png", "dest": "Client/dist/$1.png" },
+    { "src": "/(.*)\\.ico", "dest": "Client/dist/$1.ico" },
+    { "src": "/(.*)", "dest": "Client/dist/index.html" }
   ]
 }
