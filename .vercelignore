@@ -7,3 +7,24 @@ README.md
 Server/uploads/*
 !Server/uploads/.gitkeep
 node_modules
+
+# Development files
+.git
+.github
+.vscode
+*.log
+*.lock
+.env.local
+.env.development
+.env.development.local
+
+# Client dependencies that will be rebuilt on deployment
+Client/node_modules
+
+# Keep the build output
+!Client/dist
+
+# Server-side non-essential files
+Server/node_modules
+Server/uploads/*
+!Server/uploads/.gitkeep

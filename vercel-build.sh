@@ -1,37 +1,46 @@
 #!/bin/bash
-
-# Exit on error
 set -e
 
 # Print working directory
 echo "Current directory: $(pwd)"
-echo "Listing contents of root directory:"
-ls -la
 
 # Navigate to Client directory
-cd Client || { echo "Failed to change to Client directory"; exit 1; }
+cd Client || exit 1
 echo "Changed to Client directory: $(pwd)"
 
-# Install dependencies
-echo "Installing client dependencies..."
-npm install || { echo "Failed to install client dependencies"; exit 1; }
+# Create .npmrc file directly in the build environment
+cat > .npmrc << EOL
+node-linker=hoisted
+legacy-peer-deps=true
+shamefully-hoist=true
+strict-peer-dependencies=false
+rollup_skip_nodejs_native=1
+EOL
 
-# Build the client
+# Force Rollup to use the JS implementation
+export ROLLUP_SKIP_NODEJS_NATIVE=1
+export ROLLUP_NATIVE=0
+
+# Clean install with specific Vite version that works better in Vercel
+echo "Installing specific package versions..."
+rm -f package-lock.json
+npm install --no-package-lock
+npm install esbuild@0.18.20 --save-exact
+
+# Build with environment variables to skip native modules
 echo "Building client..."
-npm run build || { echo "Failed to build client"; exit 1; }
+ROLLUP_NATIVE=0 npx vite build --mode production
 
 echo "Client build completed successfully!"
-echo "Contents of dist directory:"
-ls -la dist
 
 # Return to root directory
 cd ..
 
-# Navigate to Server directory and install dependencies
-cd Server || { echo "Failed to change to Server directory"; exit 1; }
+# No explicit build needed for Server, but we'll install dependencies
+cd Server || exit 1
 echo "Changed to Server directory: $(pwd)"
 
 echo "Installing server dependencies..."
-npm install || { echo "Failed to install server dependencies"; exit 1; }
+npm ci || npm install
 
 echo "All builds completed successfully!"
