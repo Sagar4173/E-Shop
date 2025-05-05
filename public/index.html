@@ -3,40 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <title>E-Commerce Platform</title>
     <script type="module" crossorigin src="/assets/index-CI00E_nf.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/react-Csw2ODfV.js">
     <link rel="modulepreload" crossorigin href="/assets/router-BFgb5XYE.js">
     <link rel="stylesheet" crossorigin href="/assets/index-Wm98ejZY.css">
-    <script>
-      // Handle potential 404 errors for profiles and other resources
-      window.addEventListener('error', function(e) {
-        if (e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
-          console.warn('Resource failed to load:', e.target.src || e.target.href);
-        }
-      }, true);
-
-      // Suppress Lockdown.js warnings in console
-      const originalConsoleWarn = console.warn;
-      console.warn = function() {
-        if (arguments[0] && typeof arguments[0] === 'string' && 
-            (arguments[0].includes('unpermitted intrinsics') || 
-             arguments[0].includes('lockdown'))) {
-          // Suppress specific lockdown-related warnings
-          return;
-        }
-        originalConsoleWarn.apply(console, arguments);
-      };
-    </script>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>
-      <div style="padding: 2rem; text-align: center;">
-        <h1>JavaScript Required</h1>
-        <p>This application requires JavaScript to function correctly. Please enable JavaScript in your browser settings.</p>
-      </div>
-    </noscript>
   </body>
 </html>

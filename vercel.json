@@ -2,23 +2,16 @@
   "version": 2,
   "buildCommand": "echo 'Skipping build - using pre-built frontend'",
   "devCommand": null,
-  "outputDirectory": ".",
+  "outputDirectory": "Client/dist",
   "installCommand": "npm install --omit=dev",
   "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/uploads/(.*)", "destination": "/api/uploads/[...path]" },
+    { "source": "/assets/:file", "destination": "/assets/:file" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.vercel.app; img-src 'self' data: https://images.unsplash.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
-      ]
-    },
     {
       "source": "/assets/(.*)",
       "headers": [
@@ -28,17 +21,6 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/uploads/(.*)", "destination": "/api/uploads/[...path]" },
-    { "source": "/profile", "destination": "/index.html" },
-    { "source": "/account/(.*)", "destination": "/index.html" },
-    { "source": "/admin/(.*)", "destination": "/index.html" },
-    { "source": "/auth/(.*)", "destination": "/index.html" },
-    { "source": "/products/(.*)", "destination": "/index.html" },
-    { "source": "/cart", "destination": "/index.html" },
-    { "source": "/checkout/(.*)", "destination": "/index.html" }
   ],
   "trailingSlash": false,
   "cleanUrls": true,
