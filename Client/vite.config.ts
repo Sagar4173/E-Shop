@@ -15,7 +15,9 @@ export default defineConfig(({ mode }) => {
     ],
     base: "/", // Explicitly set the base path for Vercel deployment
     build: {
-      minify: isProduction ? "esbuild" : false, // Changed from terser to esbuild
+      outDir: "dist", // Ensure this matches the outputDirectory in vercel.json
+      emptyOutDir: true,
+      minify: isProduction ? "esbuild" : false,
       terserOptions: isProduction
         ? {
             compress: {
@@ -38,5 +40,19 @@ export default defineConfig(({ mode }) => {
       sourcemap: !isProduction, // Only generate sourcemaps in development
       chunkSizeWarningLimit: 1000, // Increase size limit warning threshold
     },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/uploads': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false,
+        }
+      }
+    }
   };
 });
