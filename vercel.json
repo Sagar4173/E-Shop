@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "echo 'Skipping build - using pre-built frontend'",
   "devCommand": null,
-  "outputDirectory": "Client/dist",
+  "outputDirectory": ".",
   "installCommand": "npm install --omit=dev",
   "framework": null,
   "rewrites": [
