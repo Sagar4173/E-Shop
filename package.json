@@ -14,6 +14,7 @@
     "build:client": "cd Client && npm run build",
     "build:server": "echo 'No build needed for server'",
     "build": "npm run build:client",
+    "vercel-build": "cd Client && npm install && npm run build && cd ../Server && npm install",
     "start": "cd Server && npm start",
     "seed": "cd Server && npm run seed",
     "lint": "npm run lint:client && npm run lint:server",

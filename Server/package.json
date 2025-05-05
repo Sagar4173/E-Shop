@@ -9,8 +9,7 @@
     "seed": "node src/utils/seeder.js",
     "build": "echo 'No build step required for Node.js application'",
     "lint": "eslint .",
-    "test": "echo 'No tests specified'",
-    "vercel-build": "echo 'Building for Vercel deployment'"
+    "test": "echo 'No tests specified'"
   },
   "dependencies": {
     "axios": "^1.8.4",
