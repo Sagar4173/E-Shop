@@ -27,6 +27,41 @@ const api = axios.create({
   },
   // Increase timeout for API requests - shorter in production to improve UX
   timeout: isProduction ? 60000 : 120000, // 1 minute in production, 2 minutes in development
+  // Add these options for better handling of network issues
+  validateStatus: status => status < 500, // Only reject on server errors
+  retryConfig: {
+    retries: 3, // Retry failed requests up to 3 times
+    retryDelay: retryCount => retryCount * 1000 // 1s, 2s, 3s
+  }
+});
+
+// Function to retry failed requests
+api.interceptors.response.use(undefined, async (err) => {
+  const config = err.config;
+  
+  // Check if retry config exists and we have retries left
+  if (!config || !config.retryConfig || !config.retryConfig.retries) {
+    return Promise.reject(err);
+  }
+  
+  // Set retry count (start at 0)
+  config.retryCount = config.retryCount ?? 0;
+  
+  // Check if we've maxed out retries
+  if (config.retryCount >= config.retryConfig.retries) {
+    return Promise.reject(err);
+  }
+  
+  // Increment retry count
+  config.retryCount += 1;
+  
+  // Calculate delay
+  const delay = config.retryConfig.retryDelay(config.retryCount);
+  
+  // Return promise with retry after delay
+  return new Promise(resolve => {
+    setTimeout(() => resolve(api(config)), delay);
+  });
 });
 
 // Add a request interceptor to include auth token in headers
