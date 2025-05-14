@@ -55,7 +55,10 @@ const NotFoundPage = () => {
               >
                 Contact Support
               </Link>
-              <Link to="/search" className="text-indigo-600 hover:text-indigo-500">
+              <Link
+                to="/search"
+                className="text-indigo-600 hover:text-indigo-500"
+              >
                 <FaSearch className="inline mr-1" /> Search Site
               </Link>
             </div>
