@@ -211,3 +211,19 @@ exports.handleWebhook = async (req, res) => {
   // Return a response to acknowledge receipt of the event
   res.json({ received: true });
 };
+
+// @desc    Health check for payment service
+// @route   GET /api/payments/health
+// @access  Public
+exports.healthCheck = async (req, res) => {
+  // Check if Stripe is properly initialized
+  const isStripeAvailable = !!stripe;
+
+  res.json({
+    status: isStripeAvailable ? "ok" : "error",
+    message: isStripeAvailable
+      ? "Payment service is available"
+      : "Payment service is not properly configured",
+    timestamp: new Date().toISOString(),
+  });
+};

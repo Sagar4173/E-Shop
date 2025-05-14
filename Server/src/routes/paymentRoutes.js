@@ -6,6 +6,9 @@ const { protect } = require("../middlewares/authMiddleware");
 // Get Stripe publishable key - public route
 router.get("/config", paymentController.getConfig);
 
+// Health check for payment system - public route
+router.get("/health", paymentController.healthCheck);
+
 // Create payment intent - protected route
 router.post(
   "/create-payment-intent",
