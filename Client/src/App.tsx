@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
+import { Suspense } from "react";
 import HomePage from "./pages/home/HomePage";
 import ProductsPage from "./pages/products/ProductsPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
@@ -30,68 +31,78 @@ import ReturnPolicyPage from "./pages/info/ReturnPolicyPage";
 import FAQPage from "./pages/info/FAQPage";
 import TermsPage from "./pages/info/TermsPage";
 import OrderDetailPage from "./pages/account/OrderDetailPage";
+import NotFoundPage from "./pages/error/NotFoundPage";
+import LoadingPage from "./components/common/LoadingPage";
+import ErrorBoundary from "./components/error/ErrorBoundary";
 
 const App = () => {
   return (
-    <CartProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/products/:id" element={<ProductDetailPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route
-            path="/order-confirmation"
-            element={<OrderConfirmationPage />}
-          />
+    <ErrorBoundary>
+      <CartProvider>
+        <BrowserRouter>
+          <Suspense fallback={<LoadingPage />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route
+                path="/order-confirmation"
+                element={<OrderConfirmationPage />}
+              />
 
-          {/* Info Pages */}
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/shipping" element={<ShippingPage />} />
-          <Route path="/returns" element={<ReturnPolicyPage />} />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/terms" element={<TermsPage />} />
+              {/* Info Pages */}
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/shipping" element={<ShippingPage />} />
+              <Route path="/returns" element={<ReturnPolicyPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/terms" element={<TermsPage />} />
 
-          {/* Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Auth Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* User Account Routes */}
-          <Route
-            path="/account"
-            element={<Navigate replace to="/account/profile" />}
-          />
-          <Route path="/account/orders" element={<OrdersPage />} />
-          <Route path="/account/orders/:id" element={<OrderDetailPage />} />
-          <Route path="/account/profile" element={<ProfilePage />} />
-          <Route path="/account/addresses" element={<AddressesPage />} />
-          <Route path="/account/wishlist" element={<WishlistPage />} />
-          <Route
-            path="/account/orders/:id/return"
-            element={<ReturnRequestPage />}
-          />
+              {/* User Account Routes */}
+              <Route
+                path="/account"
+                element={<Navigate replace to="/account/profile" />}
+              />
+              <Route path="/account/orders" element={<OrdersPage />} />
+              <Route path="/account/orders/:id" element={<OrderDetailPage />} />
+              <Route path="/account/profile" element={<ProfilePage />} />
+              <Route path="/account/addresses" element={<AddressesPage />} />
+              <Route path="/account/wishlist" element={<WishlistPage />} />
+              <Route
+                path="/account/orders/:id/return"
+                element={<ReturnRequestPage />}
+              />
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<DashboardPage />} />
-          <Route path="/admin/products" element={<AdminProductsPage />} />
-          <Route path="/admin/orders" element={<AdminOrdersPage />} />
-          <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
-          <Route path="/admin/products/new" element={<ProductFormPage />} />
-          <Route
-            path="/admin/products/edit/:id"
-            element={<ProductFormPage />}
-          />
-          <Route path="/admin/returns" element={<ReturnsPage />} />
-        </Routes>
-      </BrowserRouter>
-    </CartProvider>
+              {/* Admin Routes */}
+              <Route path="/admin" element={<DashboardPage />} />
+              <Route path="/admin/products" element={<AdminProductsPage />} />
+              <Route path="/admin/orders" element={<AdminOrdersPage />} />
+              <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
+              <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+              <Route path="/admin/products/new" element={<ProductFormPage />} />
+              <Route
+                path="/admin/products/edit/:id"
+                element={<ProductFormPage />}
+              />
+              <Route path="/admin/returns" element={<ReturnsPage />} />
+
+              {/* Not Found Route - Must be the last route */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </CartProvider>
+    </ErrorBoundary>
   );
 };
 
