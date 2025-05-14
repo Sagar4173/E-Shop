@@ -327,8 +327,9 @@ exports.updateOrderToPaid = async (req, res) => {
         } catch (emailError) {
           // Log but don't stop anything if email setup fails
           console.error("Failed in email background task:", emailError.message);
-        }      }, 100); // Minimal delay to ensure it runs after the response is sent
-      
+        }
+      }, 100); // Minimal delay to ensure it runs after the response is sent
+
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });
