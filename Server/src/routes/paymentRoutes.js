@@ -22,11 +22,26 @@ router.post(
   paymentController.createGuestPaymentIntent
 );
 
+// Confirm payment intent - public route
+router.post(
+  "/confirm/:paymentIntentId",
+  paymentController.confirmPaymentIntent
+);
+
 // Webhook for Stripe events - public route
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
   paymentController.handleWebhook
 );
+
+// Validate test card - public route
+router.post("/validate-card", paymentController.validateCard);
+
+// Debug verify payment - only available in non-production
+router.post("/verify-payment", paymentController.verifyPaymentDebug);
+
+// Debug test mode payment issues - only available in non-production
+router.get("/debug-test-mode/:paymentId?", paymentController.debugTestMode);
 
 module.exports = router;

@@ -6,10 +6,19 @@ export const createPaymentIntent = async (
   amount: number
 ): Promise<PaymentIntent> => {
   try {
+    // Handle zero amount orders with a special flow
+    if (amount <= 0) {
+      console.warn("Zero or negative amount detected, using minimum amount");
+      // Use the minimum amount required by Stripe ($1.00 = 100 cents)
+      amount = 1;
+    }
+
     console.log("Initiating payment intent creation for amount:", amount);
+    // Only sending amount and currency to avoid payment method configuration conflicts
     const response = await api.post("/payments/create-payment-intent", {
       amount,
       currency: "usd",
+      isZeroAmountOrder: amount === 1 ? true : undefined,
     });
     console.log("Payment intent created successfully");
     return response.data;
@@ -31,7 +40,16 @@ export const createGuestPaymentIntent = async (
   guestInfo?: { name?: string; email?: string }
 ): Promise<PaymentIntent> => {
   try {
+    // Validate amount before making API call
+    if (amount <= 0) {
+      console.warn(
+        "Cannot create guest payment intent with zero or negative amount"
+      );
+      throw new Error("Payment amount must be greater than zero");
+    }
+
     console.log("Initiating guest payment intent for amount:", amount);
+    // Only sending amount, currency and guestInfo to avoid payment method configuration conflicts
     const response = await api.post("/payments/guest-payment-intent", {
       amount,
       currency: "usd",
@@ -56,11 +74,24 @@ export const confirmPayment = async (
   orderId: string
 ) => {
   try {
+    console.log(`Confirming payment: ${paymentIntentId} for order: ${orderId}`);
     const response = await api.post(`/payments/confirm/${paymentIntentId}`, {
       orderId,
     });
+    console.log("Payment confirmation response:", response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("Error confirming payment:", error);
+    // Add more detailed error for troubleshooting
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as {
+        response?: { data?: unknown; status?: number };
+      };
+      if (apiError.response) {
+        console.error("Error response data:", apiError.response.data);
+        console.error("Error response status:", apiError.response.status);
+      }
+    }
     throw error;
   }
 };
@@ -96,7 +127,22 @@ export const processPayment = async (
       paymentDetails
     );
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Payment processing error:", error);
+
+    // Enhanced error reporting
+    if (error.response) {
+      console.error("Error status:", error.response.status);
+      console.error("Error details:", error.response.data);
+
+      // Return more descriptive error message
+      const errorMessage =
+        error.response.data?.message ||
+        error.message ||
+        "Payment processing failed";
+      throw new Error(errorMessage);
+    }
+
     throw error;
   }
 };

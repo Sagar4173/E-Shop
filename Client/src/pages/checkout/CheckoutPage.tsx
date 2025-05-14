@@ -23,12 +23,11 @@ const CheckoutPage = () => {
 
   // Add a ref to track if we're completing checkout
   const isCompletingCheckout = useRef(false);
-
   const [clientSecret, setClientSecret] = useState("");
   const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isTestMode, setIsTestMode] = useState(true);
+  const [isTestMode, setIsTestMode] = useState(false);
   const [guestInfo, setGuestInfo] = useState({ name: "", email: "" });
   const [isGuestCheckout, setIsGuestCheckout] = useState(false);
   const [paymentServerAvailable, setPaymentServerAvailable] = useState(true);
@@ -109,11 +108,19 @@ const CheckoutPage = () => {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
         const total = getCartTotal();
         console.log("Starting checkout with total:", total);
+
+        // Skip payment intent creation if total is zero or negative
+        if (total <= 0) {
+          console.log("Skipping payment intent creation for zero amount");
+          setIsTestMode(true); // Use test mode for zero-amount orders
+          setLoading(false);
+          return;
+        }
+
         let paymentData;
 
         try {
@@ -244,7 +251,6 @@ const CheckoutPage = () => {
       setIsTestMode(true);
       return;
     }
-
     try {
       setLoading(true);
       const total = getCartTotal();
@@ -253,6 +259,14 @@ const CheckoutPage = () => {
         email: guestInfo.email,
         total,
       });
+
+      // Skip payment intent creation if total is zero or negative
+      if (total <= 0) {
+        console.log("Skipping guest payment intent creation for zero amount");
+        setIsTestMode(true); // Use test mode for zero-amount orders
+        setLoading(false);
+        return;
+      }
 
       // Create guest payment intent with the user info
       const paymentData = await createGuestPaymentIntent(total, guestInfo);

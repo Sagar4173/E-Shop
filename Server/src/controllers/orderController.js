@@ -70,15 +70,61 @@ exports.createOrder = async (req, res) => {
       shippingAmount,
       totalAmount,
       isGuestOrder: isGuestCheckout || false,
-    });
-
-    // If payment result is included in the request (for guest checkout),
-    // update payment status immediately
+    }); // If payment result is included in the request (for guest checkout),
+    // only mark as paid if status is successful
     if (paymentResult && isGuestCheckout) {
-      order.isPaid = true;
-      order.paidAt = Date.now();
-      if (order.status === "pending") {
-        order.status = "processing";
+      // Only set isPaid to true if payment status is "succeeded" or "complete"
+      // Strict check to ensure payment was actually completed successfully
+      const validPaymentStatuses = ["succeeded", "complete", "paid"];
+
+      if (validPaymentStatuses.includes(paymentResult.status)) {
+        // For important payments, we should verify with Stripe directly
+        try {
+          // Import the payment validator
+          const { verifyPaymentIntent } = require("../utils/paymentValidator");
+
+          // Verify payment status directly with Stripe if we have a payment ID
+          if (paymentResult.id) {
+            const verification = await verifyPaymentIntent(paymentResult.id);
+
+            if (verification.isValid) {
+              order.isPaid = true;
+              order.paidAt = Date.now();
+              if (order.status === "pending") {
+                order.status = "processing";
+              }
+              console.log(
+                `Order marked as paid after verification with Stripe. Status: ${verification.status}`
+              );
+            } else {
+              console.warn(
+                `Payment verification failed: ${verification.message}`
+              );
+              order.isPaid = false;
+            }
+          } else {
+            // If no payment ID to verify, rely on the status provided
+            order.isPaid = true;
+            order.paidAt = Date.now();
+            if (order.status === "pending") {
+              order.status = "processing";
+            }
+            console.log(
+              `Order marked as paid with payment status: ${paymentResult.status} (no verification)`
+            );
+          }
+        } catch (verificationError) {
+          console.error(
+            "Error during payment verification:",
+            verificationError
+          );
+          // Default to not paid if verification fails
+          order.isPaid = false;
+        }
+      } else {
+        console.log(`Payment not completed. Status: ${paymentResult.status}`);
+        // Ensure order is explicitly marked as not paid
+        order.isPaid = false;
       }
       order.paymentResult = paymentResult;
     } // Update product stock quantities
@@ -143,6 +189,58 @@ exports.updateOrderToPaid = async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
+      // Verify payment status with Stripe before marking as paid
+      const { verifyPaymentIntent } = require("../utils/paymentValidator");
+      if (req.body.id) {
+        const paymentId = req.body.id;
+        console.log(
+          `Verifying payment ${paymentId} for order ${req.params.id}`
+        ); // Check if this is a payment method (pm_) or payment intent (pi_)
+        const isPaymentMethod = paymentId.startsWith("pm_");
+        // Check for test mode - be consistent with paymentValidator.js
+        const isTestMode =
+          process.env.NODE_ENV !== "production" || paymentId.includes("_test_");
+
+        if (isPaymentMethod) {
+          console.log(
+            `Payment ID appears to be a payment method ID (${paymentId}) - Test mode: ${
+              isTestMode ? "Yes" : "No"
+            }`
+          );
+        }
+
+        const verification = await verifyPaymentIntent(paymentId);
+
+        if (!verification.isValid) {
+          console.warn(`Payment verification failed: ${verification.message}`);
+
+          // Allow payments to proceed in test mode if using payment method IDs
+          if (isTestMode && isPaymentMethod) {
+            console.log(
+              "Test mode: Proceeding with payment method despite verification failure"
+            );
+            // Override verification for test mode with payment methods
+            verification.isValid = true;
+            verification.status = "succeeded_test_override";
+            verification.message =
+              "Test mode: Payment method accepted without verification";
+            verification.paymentIntent = {
+              id: `test_pi_from_${paymentId.substring(0, 8)}`,
+              status: "succeeded",
+            };
+          } else {
+            return res.status(400).json({
+              message: `Payment verification failed: ${verification.message}`,
+              status: verification.status,
+            });
+          }
+        }
+
+        console.log(`Payment verified successfully: ${verification.status}`);
+      } else {
+        console.warn("No payment ID provided for verification");
+      }
+
       order.isPaid = true;
       order.paidAt = Date.now();
       // Update order status to processing when paid
@@ -155,54 +253,95 @@ exports.updateOrderToPaid = async (req, res) => {
         update_time: req.body.update_time,
         email_address: req.body.email_address,
       };
-
       const updatedOrder = await order.save();
 
       // Send invoice email automatically when order is marked as paid
-      try {
-        // Determine recipient email from available sources
-        const recipientEmail =
-          order.paymentResult?.email_address ||
-          (order.user && typeof order.user !== "string"
-            ? order.user.email
-            : undefined) ||
-          order.shippingAddress.email;
+      // But schedule it as a background task to avoid blocking the payment confirmation
+      setTimeout(() => {
+        try {
+          // Only attempt to send email if not in test mode and not for zero amount orders
+          if (
+            !(process.env.NODE_ENV !== "production" && order.totalAmount === 0)
+          ) {
+            // Determine recipient email from available sources
+            const recipientEmail =
+              order.paymentResult?.email_address ||
+              (order.user && typeof order.user !== "string" && order.user.email
+                ? order.user.email
+                : undefined) ||
+              (order.shippingAddress && order.shippingAddress.email);
 
-        if (recipientEmail) {
-          // Import axios for making HTTP requests
-          const axios = require("axios");
+            // Only attempt to send email if we have a valid email
+            if (recipientEmail) {
+              // Try to get the BASE_URL - use default if not available
+              const baseUrl = process.env.BASE_URL || "http://localhost:5000";
 
-          // Define the base URL for the API
-          const baseUrl = process.env.BASE_URL;
+              console.log(
+                `Attempting to send invoice email to ${recipientEmail}`
+              );
 
-          // Call the email API to send the invoice
-          const emailResponse = await axios.post(
-            `${baseUrl}/api/emails/send-invoice`,
-            {
-              orderId: order._id,
-              recipientEmail: recipientEmail,
-            },
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
+              // Import axios here to avoid blocking the main thread
+              const axios = require("axios");
+
+              // Use a timeout to prevent long-running requests
+              axios
+                .post(
+                  `${baseUrl}/api/emails/send-invoice`,
+                  {
+                    orderId: order._id,
+                    recipientEmail: recipientEmail,
+                  },
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    timeout: 8000, // 8 second timeout (increased)
+                  }
+                )
+                .then((response) =>
+                  console.log("Invoice email sent:", response.data.success)
+                )
+                .catch((err) => {
+                  console.error("Failed to send invoice email:", err.message);
+                  // Log more details about the error for debugging
+                  if (err.response) {
+                    console.error(
+                      "Error response:",
+                      err.response.status,
+                      err.response.data
+                    );
+                  }
+                });
+
+              console.log("Email sending initiated (completely non-blocking)");
+            } else {
+              console.log(
+                "Skipping invoice email - no recipient email available"
+              );
             }
-          );
-
-          console.log("Invoice email sent:", emailResponse.data.success);
-        }
-      } catch (emailError) {
-        // Log but don't stop the order update if email fails
-        console.error("Failed to send invoice email:", emailError.message);
-      }
-
+          } else {
+            console.log(
+              "Skipping invoice email for test mode or zero amount order"
+            );
+          }
+        } catch (emailError) {
+          // Log but don't stop anything if email setup fails
+          console.error("Failed in email background task:", emailError.message);
+        }      }, 100); // Minimal delay to ensure it runs after the response is sent
+      
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in updateOrderToPaid:", error.message);
+    console.error("Error stack:", error.stack);
+    // Include additional details for debugging but keep response generic for security
+    res.status(500).json({
+      message: "Server error processing payment",
+      errorType: error.name,
+      code: error.code || "UNKNOWN",
+    });
   }
 };
 

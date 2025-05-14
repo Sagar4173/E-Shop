@@ -21,11 +21,13 @@ interface CheckoutFormProps {
     name: string;
     email: string;
   };
+  clientSecret?: string;
 }
 
 const CheckoutForm = ({
   isGuestCheckout = false,
   guestInfo = { name: "", email: "" },
+  clientSecret = "",
 }: CheckoutFormProps) => {
   const navigate = useNavigate();
   const stripe = useStripe();
@@ -206,8 +208,8 @@ const CheckoutForm = ({
         },
         paymentMethod: "Stripe",
         paymentResult: {
-          id: paymentMethod.id,
-          status: "succeeded",
+          id: "pending_pi_" + paymentMethod.id, // Will be replaced with the actual payment intent ID after confirmation
+          status: "processing", // Set to processing until full confirmation
           update_time: new Date().toISOString(),
           email_address: formData.email,
         },
@@ -220,26 +222,70 @@ const CheckoutForm = ({
 
       // Create the order in our system
       const createdOrder = await createOrder(orderData);
-
       try {
-        // Update order as paid in the backend - will change status from pending to processing
-        // Only attempt to update payment status if not guest checkout
-        if (!isGuestCheckout) {
-          await updateOrderToPaid(createdOrder._id, {
-            id: paymentMethod.id,
-            status: "succeeded",
+        // Complete the Stripe payment flow using confirmCardPayment
+        const { paymentIntent, error: confirmError } =
+          await stripe.confirmCardPayment(clientSecret, {
+            payment_method: { card: cardElement },
+          });
+
+        if (confirmError) {
+          // Payment failed
+          console.error("Payment confirmation error:", confirmError);
+          throw new Error(confirmError.message || "Payment failed");
+        }
+        if (paymentIntent && paymentIntent.status === "succeeded") {
+          // Payment succeeded, update order status
+          const paymentResultUpdate = {
+            id: paymentIntent.id, // Use payment intent ID instead of payment method ID
+            status: paymentIntent.status, // This should be "succeeded"
             update_time: new Date().toISOString(),
             email_address: formData.email,
-          });
-        } else {
-          // For guest checkout, payment status should be handled during order creation
+          };
+
+          // Update payment for both guest and logged-in users
+          await updateOrderToPaid(createdOrder._id, paymentResultUpdate);
           console.log(
-            "Guest checkout - payment status updated during order creation"
+            `Payment successfully completed. Status: ${paymentIntent.status}`
           );
+
+          // For debugging payment flow
+          if (isGuestCheckout) {
+            console.log("Guest checkout payment completed successfully");
+          }
+        } else {
+          console.warn(
+            "Payment intent status not successful:",
+            paymentIntent?.status
+          );
+
+          // For guest checkout, we need to be strict about payment success
+          if (isGuestCheckout) {
+            throw new Error(
+              `Payment not completed. Status: ${
+                paymentIntent?.status || "unknown"
+              }`
+            );
+          } else {
+            // For logged-in users, we still notify but continue
+            setError(
+              `Payment not completed. Status: ${
+                paymentIntent?.status || "unknown"
+              }`
+            );
+          }
         }
       } catch (payError) {
         console.error("Failed to update order payment status:", payError);
-        // Continue with checkout even if this fails
+
+        // For guest checkout, stop the process if payment fails
+        if (isGuestCheckout) {
+          throw payError; // Re-throw to break out of the checkout flow
+        }
+        // For logged-in users, continue with checkout but show error
+        setError(
+          `Payment issue: ${payError.message || "Error processing payment"}`
+        );
       }
 
       // Send order confirmation email
