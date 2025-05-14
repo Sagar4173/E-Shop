@@ -181,15 +181,13 @@ const CheckoutForm = ({
       const subtotal = getCartTotal();
       const shippingAmount = subtotal >= 50 ? 0 : 10;
       const taxAmount = subtotal * 0.18; // 18% tax
-      const totalAmount = subtotal + shippingAmount + taxAmount;
-
-      // Prepare order data
+      const totalAmount = subtotal + shippingAmount + taxAmount; // Prepare order data
       const orderData = {
         orderItems: cartItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           price: item.price,
-          image: item.imageUrl, // Changed imageUrl to image to match OrderItem interface
+          imageUrl: item.imageUrl, // Correctly mapped to match server-side Order model
           product: item.id, // Changed from item._id to item.id - this is how IDs are stored in the cart
         })),
         shippingAddress: {

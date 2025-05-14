@@ -40,7 +40,7 @@ export interface StatusHistoryEntry {
 interface OrderItem {
   product: string;
   name: string;
-  image: string;
+  imageUrl: string; // Changed from "image" to "imageUrl" to match server model
   price: number;
   quantity: number;
 }

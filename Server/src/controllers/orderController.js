@@ -23,9 +23,45 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: "No order items" });
     }
 
-    // Create new order
+    // Process order items to ensure imageUrl is present
+    const processedOrderItems = [...orderItems];
+    for (let i = 0; i < processedOrderItems.length; i++) {
+      const item = processedOrderItems[i];
+      if (!item.imageUrl && item.product) {
+        try {
+          // If imageUrl is missing but we have a product ID, fetch from database
+          const product = await Product.findById(item.product);
+          if (product && product.imageUrl) {
+            processedOrderItems[i] = {
+              ...item,
+              imageUrl: product.imageUrl,
+            };
+            console.log(
+              `Added missing imageUrl for product ${item.name} from database`
+            );
+          } else {
+            // Use a default image if product not found or has no image
+            processedOrderItems[i] = {
+              ...item,
+              imageUrl: "https://via.placeholder.com/150",
+            };
+            console.log(`Using placeholder imageUrl for product ${item.name}`);
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching product image for ${item.name}:`,
+            error
+          );
+          // Use placeholder image as fallback
+          processedOrderItems[i] = {
+            ...item,
+            imageUrl: "https://via.placeholder.com/150",
+          };
+        }
+      }
+    } // Create new order
     const order = new Order({
-      orderItems,
+      orderItems: processedOrderItems,
       user: req.user ? req.user._id : null, // Allow null user for guest checkout
       shippingAddress,
       paymentMethod,
@@ -45,10 +81,8 @@ exports.createOrder = async (req, res) => {
         order.status = "processing";
       }
       order.paymentResult = paymentResult;
-    }
-
-    // Update product stock quantities
-    for (const item of orderItems) {
+    } // Update product stock quantities
+    for (const item of processedOrderItems) {
       const product = await Product.findById(item.product);
       if (product) {
         product.stock -= item.quantity;
