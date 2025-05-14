@@ -11,6 +11,9 @@
     { "source": "/assets/:file", "destination": "/assets/:file" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html", "status": 200 }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
