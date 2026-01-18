@@ -1,5 +1,7 @@
 import api from "./api";
-import { StatusHistoryEntry } from "../types";
+import type { StatusHistoryEntry } from "../types";
+
+export type { StatusHistoryEntry };
 
 export interface Order {
   _id: string;
@@ -27,9 +29,6 @@ export interface Order {
   invoiceSent?: boolean;
   hasReturn?: boolean;
 }
-
-// Re-export StatusHistoryEntry from types for backward compatibility
-export { StatusHistoryEntry };
 
 interface OrderItem {
   product: string;
