@@ -1,11 +1,12 @@
 import { useState, useEffect, useContext, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import { CartContext } from "../../context/CartContext";
 import CheckoutForm from "../../components/checkout/CheckoutForm";
 import OrderSummary from "../../components/checkout/OrderSummary";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
+import { getCurrentUser } from "../../services/authService";
 import {
   createPaymentIntent,
   createGuestPaymentIntent,
@@ -15,6 +16,7 @@ import {
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cartItems, getCartTotal, clearCart } = useContext(CartContext) || {
     cartItems: [],
     getCartTotal: () => 0,
@@ -32,6 +34,7 @@ const CheckoutPage = () => {
   const [isGuestCheckout, setIsGuestCheckout] = useState(false);
   const [paymentServerAvailable, setPaymentServerAvailable] = useState(true);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const user = getCurrentUser();
 
   // Check payment server health
   useEffect(() => {
@@ -137,9 +140,22 @@ const CheckoutPage = () => {
         } catch (authError: any) {
           console.log(
             "Authentication error, trying guest checkout:",
-            authError
+            authError,
           );
-
+          // Check if it's a Stripe account error (402 status)
+          if (
+            authError.response?.status === 402 ||
+            authError.message?.includes("402")
+          ) {
+            console.warn(
+              "Stripe account issue detected (402), enabling test mode",
+            );
+            setPaymentServerAvailable(false);
+            setIsTestMode(true);
+            setError("Payment processing unavailable. Using test mode.");
+            setLoading(false);
+            return;
+          }
           // If it's a timeout error, might be a server issue
           if (
             authError.message?.includes("timeout") ||
@@ -147,7 +163,7 @@ const CheckoutPage = () => {
           ) {
             console.warn(
               "Payment server might be down or slow, attempt " +
-                (retryAttempt + 1)
+                (retryAttempt + 1),
             );
 
             // If this is the first retry attempt, try once more
@@ -161,7 +177,7 @@ const CheckoutPage = () => {
               setPaymentServerAvailable(false);
               setIsTestMode(true);
               setError(
-                "Payment system is temporarily unavailable. Using test mode."
+                "Payment system is temporarily unavailable. Using test mode.",
               );
               setLoading(false);
               return;
@@ -192,12 +208,12 @@ const CheckoutPage = () => {
         // Handle server errors specially
         if (err.message?.includes("500") || err.message?.includes("server")) {
           setError(
-            "The payment server encountered an error. You can continue in test mode or try again later."
+            "The payment server encountered an error. You can continue in test mode or try again later.",
           );
           setIsTestMode(true);
         } else {
           setError(
-            "Failed to initialize payment system. Please try again or contact support."
+            "Failed to initialize payment system. Please try again or contact support.",
           );
         }
       } finally {
@@ -246,7 +262,7 @@ const CheckoutPage = () => {
 
     if (!paymentServerAvailable) {
       console.log(
-        "Payment server is unavailable for guest checkout, using test mode"
+        "Payment server is unavailable for guest checkout, using test mode",
       );
       setIsTestMode(true);
       return;
@@ -280,7 +296,12 @@ const CheckoutPage = () => {
     } catch (err: any) {
       console.error("Error creating guest payment intent:", err);
 
-      if (
+      // Check for Stripe account errors (402)
+      if (err.response?.status === 402 || err.message?.includes("402")) {
+        setPaymentServerAvailable(false);
+        setIsTestMode(true);
+        setError("Payment processing unavailable. Using test mode.");
+      } else if (
         err.message?.includes("timeout") ||
         err.message?.includes("too long")
       ) {
@@ -289,7 +310,7 @@ const CheckoutPage = () => {
         setError("Payment system is temporarily unavailable. Using test mode.");
       } else {
         setError(
-          "Failed to create payment. Please try again or contact support."
+          "Failed to create payment. Please try again or contact support.",
         );
         setIsTestMode(true); // Fallback to test mode
       }
@@ -398,8 +419,68 @@ const CheckoutPage = () => {
       );
     }
 
+    // If we're in test mode, always show the test mode form
+    // This prevents Stripe errors from blocking checkout
+    if (isTestMode) {
+      console.log("Rendering test mode form (test mode enabled)");
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Test Mode Checkout
+          </h2>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Test Mode:</strong> Your order will be processed without
+              payment. No charges will be made.
+            </p>
+          </div>
+          <form onSubmit={handleTestModeSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="test-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  id="test-name"
+                  name="test-name"
+                  defaultValue={user?.name || ""}
+                  className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="test-email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="test-email"
+                  name="test-email"
+                  defaultValue={user?.email || ""}
+                  className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium"
+              >
+                Complete Test Order
+              </button>
+            </div>
+          </form>
+        </div>
+      );
+    }
+
     // If we have a client secret and Stripe is initialized, show the Stripe Elements form
-    // regardless of test mode - this fixes the issue where the client secret exists but test mode is true
     if (clientSecret && stripePromise) {
       console.log("Rendering Stripe Elements form with client secret");
       return (

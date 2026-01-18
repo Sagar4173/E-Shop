@@ -39,9 +39,9 @@ import ErrorBoundary from "./components/error/ErrorBoundary";
 
 const App = () => {
   return (
-    <ErrorBoundary>
-      <CartProvider>
-        <BrowserRouter>
+    <CartProvider>
+      <BrowserRouter>
+        <ErrorBoundary>
           <Suspense fallback={<LoadingPage />}>
             <Routes>
               {/* Public Routes */}
@@ -110,9 +110,9 @@ const App = () => {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
-      </CartProvider>
-    </ErrorBoundary>
+        </ErrorBoundary>
+      </BrowserRouter>
+    </CartProvider>
   );
 };
 
