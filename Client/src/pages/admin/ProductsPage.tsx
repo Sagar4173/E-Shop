@@ -69,7 +69,7 @@ const ProductsPage = () => {
         const uniqueCategories = [
           "All Categories",
           ...Array.from(
-            new Set(productsList.map((product) => product.category))
+            new Set(productsList.map((product) => product.category)),
           ),
         ] as string[];
 
@@ -78,7 +78,7 @@ const ProductsPage = () => {
       } catch (error) {
         console.error("Error fetching products:", error);
         setError(
-          error instanceof Error ? error.message : "Failed to load products"
+          error instanceof Error ? error.message : "Failed to load products",
         );
         setLoading(false);
       }
@@ -119,7 +119,7 @@ const ProductsPage = () => {
       setDeleteError(null);
       await deleteProduct(productToDelete);
       setProducts(
-        products.filter((product) => product._id !== productToDelete)
+        products.filter((product) => product._id !== productToDelete),
       );
       closeDeleteModal();
     } catch (error) {
@@ -127,7 +127,7 @@ const ProductsPage = () => {
       setDeleteError(
         error instanceof Error
           ? error.message
-          : "Failed to delete product. Please try again."
+          : "Failed to delete product. Please try again.",
       );
       // Don't close modal to allow retry
     }
@@ -150,7 +150,7 @@ const ProductsPage = () => {
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(
     indexOfFirstProduct,
-    indexOfLastProduct
+    indexOfLastProduct,
   );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
@@ -195,6 +195,7 @@ const ProductsPage = () => {
               <div className="relative">
                 <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <select
+                  aria-label="Filter by category"
                   value={selectedCategory}
                   onChange={handleCategoryChange}
                   className="pl-10 w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
@@ -294,15 +295,15 @@ const ProductsPage = () => {
                             product.stock > 10
                               ? "bg-green-100 text-green-800"
                               : product.stock > 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {product.stock > 10
                             ? "In Stock"
                             : product.stock > 0
-                            ? "Low Stock"
-                            : "Out of Stock"}
+                              ? "Low Stock"
+                              : "Out of Stock"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -316,6 +317,7 @@ const ProductsPage = () => {
                           <button
                             onClick={() => openDeleteModal(product._id)}
                             className="text-red-600 hover:text-red-900"
+                            aria-label={`Delete ${product.name}`}
                           >
                             <FaTrash />
                           </button>

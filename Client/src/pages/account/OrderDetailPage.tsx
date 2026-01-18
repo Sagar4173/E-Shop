@@ -360,7 +360,7 @@ const OrderDetailPage: React.FC = () => {
               {hasReturnRequest && (
                 <Link
                   to={`/account/orders/${order._id}/return-request`}
-                  className="inline-block bg-gray-100 text-gray-800 py-2 px-4 rounded hover:bg-gray-200 mt-2 flex items-center"
+                  className="inline-flex items-center bg-gray-100 text-gray-800 py-2 px-4 rounded hover:bg-gray-200 mt-2"
                 >
                   <FaUndo className="mr-2" /> View Return Request
                 </Link>

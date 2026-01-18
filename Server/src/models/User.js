@@ -72,8 +72,15 @@ const userSchema = new mongoose.Schema(
     twoFactorOtpExpires: {
       type: Date,
     },
+    // Wishlist - array of product references
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before saving

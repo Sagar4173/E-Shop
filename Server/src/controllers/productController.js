@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 // @access  Public
 exports.getProducts = async (req, res) => {
   try {
-    const { category, keyword, sort, limit } = req.query;
+    const { category, keyword, sort, limit, min, max, rating } = req.query;
     const queryFilter = {};
 
     // Apply category filter if specified
@@ -14,9 +14,24 @@ exports.getProducts = async (req, res) => {
       queryFilter.category = category;
     }
 
-    // Apply keyword search if specified
+    // Apply keyword search if specified (search in name and description)
     if (keyword) {
-      queryFilter.name = { $regex: keyword, $options: "i" };
+      queryFilter.$or = [
+        { name: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } },
+      ];
+    }
+
+    // Apply price range filter
+    if (min || max) {
+      queryFilter.price = {};
+      if (min) queryFilter.price.$gte = Number(min);
+      if (max) queryFilter.price.$lte = Number(max);
+    }
+
+    // Apply rating filter
+    if (rating) {
+      queryFilter.rating = { $gte: Number(rating) };
     }
 
     // Set up sorting options
@@ -303,7 +318,7 @@ exports.createProductReview = async (req, res) => {
 
     // Check if user already reviewed this product
     const alreadyReviewed = product.reviews.find(
-      (r) => r.user && r.user.toString() === req.user._id.toString()
+      (r) => r.user && r.user.toString() === req.user._id.toString(),
     );
 
     if (alreadyReviewed) {
@@ -360,7 +375,7 @@ exports.getProductReviews = async (req, res) => {
 
     const product = await Product.findById(productId).populate(
       "reviews.user",
-      "name"
+      "name",
     );
 
     if (!product) {
@@ -414,7 +429,7 @@ exports.deleteProductReview = async (req, res) => {
 
     // Remove the review
     const updatedReviews = product.reviews.filter(
-      (r) => r._id.toString() !== reviewId
+      (r) => r._id.toString() !== reviewId,
     );
     product.reviews = updatedReviews;
 

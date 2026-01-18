@@ -73,7 +73,8 @@ exports.createPaymentIntent = async (req, res) => {
   }
   try {
     // Only extract the specific properties we need to avoid conflicts
-    const { amount, currency = "usd", isZeroAmountOrder = false } = req.body;
+    // Default currency to INR to match frontend display
+    const { amount, currency = "inr", isZeroAmountOrder = false } = req.body;
 
     // We don't extract payment_method_types to avoid conflicts with automatic_payment_methods
 
@@ -84,14 +85,14 @@ exports.createPaymentIntent = async (req, res) => {
     // Check if amount meets minimum requirement
     if (amountInCents < minimumAmount) {
       console.log(
-        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`
+        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`,
       );
       amountInCents = minimumAmount;
     }
     console.log(
       `Creating payment intent for ${amountInCents} cents (${currency})${
         isZeroAmountOrder ? " (zero amount order)" : ""
-      }`
+      }`,
     ); // Check if we're in test mode
     const isTestMode = process.env.NODE_ENV !== "production";
 
@@ -133,9 +134,10 @@ exports.createGuestPaymentIntent = async (req, res) => {
   }
   try {
     // Only extract the specific properties we need and avoid conflicts
+    // Default currency to INR to match frontend display
     const {
       amount,
-      currency = "usd",
+      currency = "inr",
       guestInfo = {},
       isZeroAmountOrder = false,
     } = req.body;
@@ -146,7 +148,7 @@ exports.createGuestPaymentIntent = async (req, res) => {
       // If tagged as a zero amount order, allow it but log a warning
       if (isZeroAmountOrder) {
         console.warn(
-          "Zero amount order detected, proceeding with minimum amount"
+          "Zero amount order detected, proceeding with minimum amount",
         );
       } else {
         return res.status(400).json({ message: "Valid amount is required" });
@@ -160,14 +162,14 @@ exports.createGuestPaymentIntent = async (req, res) => {
     // Check if amount meets minimum requirement
     if (amountInCents < minimumAmount) {
       console.log(
-        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`
+        `Amount ${amountInCents} is below minimum ${minimumAmount} for ${currency}, using minimum`,
       );
       amountInCents = minimumAmount;
     }
     console.log(
       `Creating guest payment intent for ${amountInCents} cents (${currency})${
         isZeroAmountOrder ? " (zero amount order)" : ""
-      }`
+      }`,
     ); // Check if we're in test mode
     const isTestMode = process.env.NODE_ENV !== "production";
 
@@ -219,7 +221,7 @@ exports.handleWebhook = async (req, res) => {
     event = stripe.webhooks.constructEvent(
       req.rawBody,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (error) {
     console.error(`Webhook signature verification failed: ${error.message}`);
@@ -234,7 +236,7 @@ exports.handleWebhook = async (req, res) => {
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object;
         console.log(
-          `PaymentIntent for ${paymentIntent.amount} was successful! ID: ${paymentIntent.id}`
+          `PaymentIntent for ${paymentIntent.amount} was successful! ID: ${paymentIntent.id}`,
         );
 
         // Try to find the order associated with this payment intent
@@ -265,7 +267,7 @@ exports.handleWebhook = async (req, res) => {
             paymentIntent.metadata.orderId
           ) {
             console.log(
-              `Checking order by metadata orderId: ${paymentIntent.metadata.orderId}`
+              `Checking order by metadata orderId: ${paymentIntent.metadata.orderId}`,
             );
             order = await Order.findById(paymentIntent.metadata.orderId);
           }
@@ -299,12 +301,12 @@ exports.handleWebhook = async (req, res) => {
             console.log(`Order ${order._id} updated with payment confirmation`);
           } else {
             console.log(
-              `No order found for payment intent ${paymentIntent.id}`
+              `No order found for payment intent ${paymentIntent.id}`,
             );
           }
         } catch (orderError) {
           console.error(
-            `Error processing order update for payment: ${orderError.message}`
+            `Error processing order update for payment: ${orderError.message}`,
           );
         }
         break;
@@ -312,7 +314,7 @@ exports.handleWebhook = async (req, res) => {
       case "payment_intent.payment_failed":
         const failedPayment = event.data.object;
         console.log(
-          `Payment failed: ${failedPayment.id}, error: ${failedPayment.last_payment_error?.message}`
+          `Payment failed: ${failedPayment.id}, error: ${failedPayment.last_payment_error?.message}`,
         );
         // Could implement notification system here for failed payments
         break;
@@ -421,13 +423,13 @@ exports.confirmPaymentIntent = async (req, res) => {
         isPaymentMethod ? "method" : "intent"
       } ${paymentIntentId} for order ${orderId} (Test mode: ${
         isTestMode ? "Yes" : "No"
-      })`
+      })`,
     );
 
     // Special handling for test mode with payment methods
     if (isTestMode && isPaymentMethod) {
       console.log(
-        `Test mode with payment method detected, fast-tracking verification`
+        `Test mode with payment method detected, fast-tracking verification`,
       );
     }
 
@@ -437,11 +439,11 @@ exports.confirmPaymentIntent = async (req, res) => {
 
     if (verification.isValid) {
       console.log(
-        `Payment ${paymentIntentId} verified as valid: ${verification.status}`
+        `Payment ${paymentIntentId} verified as valid: ${verification.status}`,
       );
     } else {
       console.log(
-        `Payment ${paymentIntentId} verification failed: ${verification.message}`
+        `Payment ${paymentIntentId} verification failed: ${verification.message}`,
       );
     }
 
@@ -458,9 +460,8 @@ exports.confirmPaymentIntent = async (req, res) => {
       // If verification failed, try to retrieve the payment intent directly
       try {
         // Retrieve the payment intent to check its status
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          paymentIntentId
-        );
+        const paymentIntent =
+          await stripe.paymentIntents.retrieve(paymentIntentId);
 
         if (!paymentIntent) {
           return res.status(404).json({ message: "Payment intent not found" });
@@ -469,11 +470,10 @@ exports.confirmPaymentIntent = async (req, res) => {
         // Check if the payment intent needs to be confirmed or is already in a final state
         if (paymentIntent.status === "requires_confirmation") {
           // Confirm the payment intent if it requires confirmation
-          const confirmedIntent = await stripe.paymentIntents.confirm(
-            paymentIntentId
-          );
+          const confirmedIntent =
+            await stripe.paymentIntents.confirm(paymentIntentId);
           console.log(
-            `Payment intent confirmed: ${confirmedIntent.id}, status: ${confirmedIntent.status}`
+            `Payment intent confirmed: ${confirmedIntent.id}, status: ${confirmedIntent.status}`,
           );
 
           res.json({
@@ -483,12 +483,12 @@ exports.confirmPaymentIntent = async (req, res) => {
           });
         } else if (
           ["succeeded", "processing", "requires_capture"].includes(
-            paymentIntent.status
+            paymentIntent.status,
           )
         ) {
           // If it's already in a successful or processing state
           console.log(
-            `Payment intent ${paymentIntentId} already in state: ${paymentIntent.status}`
+            `Payment intent ${paymentIntentId} already in state: ${paymentIntent.status}`,
           );
 
           // For payment intents that require capture (for auth only)
@@ -510,7 +510,7 @@ exports.confirmPaymentIntent = async (req, res) => {
         } else {
           // If the payment intent is in some other state (failed, canceled, etc.)
           console.log(
-            `Payment intent ${paymentIntentId} in unexpected state: ${paymentIntent.status}`
+            `Payment intent ${paymentIntentId} in unexpected state: ${paymentIntent.status}`,
           );
           res.status(400).json({
             success: false,
@@ -530,13 +530,13 @@ exports.confirmPaymentIntent = async (req, res) => {
         if (isTestMode && isPaymentMethod) {
           // In test mode with payment methods, always allow the payment despite errors
           console.log(
-            "Test mode: Allowing payment with payment method despite error"
+            "Test mode: Allowing payment with payment method despite error",
           );
 
           // Create a consistent test payment ID format for easier tracking/debugging
           const testPaymentId = `test_pi_from_${paymentIntentId.substring(
             0,
-            8
+            8,
           )}_${Date.now().toString().substring(9)}`;
 
           res.json({
@@ -622,8 +622,8 @@ exports.debugTestMode = async (req, res) => {
       paymentIdType: isPaymentMethod
         ? "payment_method"
         : isPaymentIntent
-        ? "payment_intent"
-        : "unknown",
+          ? "payment_intent"
+          : "unknown",
     };
 
     // If a specific payment ID was provided, provide more info
@@ -632,9 +632,8 @@ exports.debugTestMode = async (req, res) => {
         try {
           if (isPaymentMethod) {
             // Get payment method details
-            const paymentMethod = await stripe.paymentMethods.retrieve(
-              paymentId
-            );
+            const paymentMethod =
+              await stripe.paymentMethods.retrieve(paymentId);
             debugInfo.paymentMethod = {
               id: paymentMethod.id,
               type: paymentMethod.type,
@@ -664,13 +663,12 @@ exports.debugTestMode = async (req, res) => {
                 amount: pi.amount,
                 currency: pi.currency,
                 created: new Date(pi.created * 1000).toISOString(),
-              })
+              }),
             );
           } else if (isPaymentIntent) {
             // Get payment intent details
-            const paymentIntent = await stripe.paymentIntents.retrieve(
-              paymentId
-            );
+            const paymentIntent =
+              await stripe.paymentIntents.retrieve(paymentId);
             debugInfo.paymentIntent = {
               id: paymentIntent.id,
               status: paymentIntent.status,

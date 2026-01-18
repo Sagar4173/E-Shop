@@ -56,7 +56,7 @@ class ErrorBoundary extends Component<Props, State> {
                   </button>
                   <Link
                     to="/"
-                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-indigo-600 bg-white border-indigo-600 hover:bg-gray-50"
+                    className="inline-flex items-center justify-center px-6 py-3 border border-indigo-600 text-base font-medium rounded-md shadow-sm text-indigo-600 bg-white hover:bg-gray-50"
                   >
                     <FaHome className="mr-2" /> Return Home
                   </Link>

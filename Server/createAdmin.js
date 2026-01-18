@@ -6,10 +6,7 @@ const User = require("./src/models/User");
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected for admin creation"))
   .catch((err) => {
     console.error("MongoDB connection error:", err);
@@ -24,7 +21,7 @@ const createAdminUser = async () => {
 
     if (adminExists) {
       console.log(
-        "Admin user already exists. Updating to ensure admin privileges."
+        "Admin user already exists. Updating to ensure admin privileges.",
       );
       adminExists.isAdmin = true;
       await adminExists.save();

@@ -38,13 +38,13 @@ const ProductList = ({
   categories = [],
 }: ProductListProps) => {
   const [activeCategory, setActiveCategory] = useState<string>(
-    initialCategory || ""
+    initialCategory || "",
   );
   const [sortOption, setSortOption] = useState<string>(initialSortOption);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(showFilters);
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>(
-    initialPriceRange
+    initialPriceRange,
   );
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
   const [displayCategoryCount, setDisplayCategoryCount] = useState(10);
@@ -57,7 +57,7 @@ const ProductList = ({
     } else {
       // Extract unique categories from products if not provided
       const uniqueCategories = Array.from(
-        new Set(products.map((p) => p.category))
+        new Set(products.map((p) => p.category)),
       ).sort();
       setAvailableCategories(["All", ...uniqueCategories]);
     }
@@ -81,7 +81,7 @@ const ProductList = ({
 
     // Filter by price range
     result = result.filter(
-      (p) => p.price >= priceRange.min && p.price <= priceRange.max
+      (p) => p.price >= priceRange.min && p.price <= priceRange.max,
     );
 
     // Sort products
@@ -188,7 +188,7 @@ const ProductList = ({
               <button
                 onClick={() =>
                   setDisplayCategoryCount((prev) =>
-                    prev === 10 ? availableCategories.length : 10
+                    prev === 10 ? availableCategories.length : 10,
                   )
                 }
                 className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
@@ -207,7 +207,10 @@ const ProductList = ({
           <div className="flex flex-wrap items-center gap-4 justify-between lg:justify-end">
             {/* Price Range Filter */}
             <div className="flex items-center space-x-3 min-w-[200px]">
-              <span className="text-sm text-gray-600 whitespace-nowrap">
+              <span
+                className="text-sm text-gray-600 whitespace-nowrap"
+                id="price-label"
+              >
                 Price:
               </span>
               <div className="flex items-center space-x-2 flex-1">
@@ -219,10 +222,11 @@ const ProductList = ({
                   onChange={(e) =>
                     handlePriceRangeChange(
                       Number(e.target.value),
-                      priceRange.max
+                      priceRange.max,
                     )
                   }
                   className="w-16 border border-gray-300 rounded-md py-1 px-2 text-sm"
+                  aria-label="Minimum price"
                 />
                 <span className="text-sm text-gray-500">to</span>
                 <input
@@ -233,10 +237,11 @@ const ProductList = ({
                   onChange={(e) =>
                     handlePriceRangeChange(
                       priceRange.min,
-                      Number(e.target.value)
+                      Number(e.target.value),
                     )
                   }
                   className="w-16 border border-gray-300 rounded-md py-1 px-2 text-sm"
+                  aria-label="Maximum price"
                 />
               </div>
             </div>
@@ -273,6 +278,7 @@ const ProductList = ({
                 className="appearance-none border rounded-md px-3 py-2 pr-8 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 value={sortOption}
                 onChange={handleSortChange}
+                aria-label="Sort products by"
               >
                 <option value="latest">Latest</option>
                 <option value="price-low-high">Price: Low to High</option>

@@ -34,6 +34,7 @@ const CartItem = ({ item }: CartItemProps) => {
           <button
             onClick={() => updateQuantity(item.id, item.quantity - 1)}
             className="text-gray-500 focus:outline-none focus:text-gray-600 p-1"
+            aria-label="Decrease quantity"
           >
             <svg
               className="h-5 w-5"
@@ -53,6 +54,7 @@ const CartItem = ({ item }: CartItemProps) => {
           <button
             onClick={() => updateQuantity(item.id, item.quantity + 1)}
             className="text-gray-500 focus:outline-none focus:text-gray-600 p-1"
+            aria-label="Increase quantity"
           >
             <svg
               className="h-5 w-5"

@@ -74,7 +74,7 @@ const DashboardPage = () => {
 
         // Process order data for analytics
         const completedOrders = ordersData.filter(
-          (order: any) => order.isPaid && !order.isRefunded
+          (order: any) => order.isPaid && !order.isRefunded,
         );
 
         // Calculate dashboard stats from real data
@@ -90,8 +90,8 @@ const DashboardPage = () => {
           ordersData.map((order: any) =>
             order.user && typeof order.user === "object"
               ? order.user._id
-              : order.user
-          )
+              : order.user,
+          ),
         );
         const customerCount = customerIds.size;
 
@@ -109,7 +109,7 @@ const DashboardPage = () => {
             ? (
                 paidOrders.reduce(
                   (sum: number, order: any) => sum + order.totalAmount,
-                  0
+                  0,
                 ) / paidOrders.length
               ).toFixed(2)
             : "0";
@@ -157,7 +157,7 @@ const DashboardPage = () => {
         // Get recent orders (last 5)
         const sortedOrders = [...ordersData].sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
 
         setRecentOrders(sortedOrders.slice(0, 5));
@@ -166,7 +166,7 @@ const DashboardPage = () => {
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
         setError(
-          error?.response?.data?.message || "Failed to load dashboard data"
+          error?.response?.data?.message || "Failed to load dashboard data",
         );
         setLoading(false);
       }
@@ -374,10 +374,10 @@ const DashboardPage = () => {
                               order.status === "delivered"
                                 ? "bg-green-100 text-green-800"
                                 : order.status === "shipped"
-                                ? "bg-blue-100 text-blue-800"
-                                : order.status === "processing"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : order.status === "processing"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
                             }`}
                           >
                             {order.status.charAt(0).toUpperCase() +
@@ -401,7 +401,7 @@ const DashboardPage = () => {
           </div>
 
           {/* Quick Links */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link
               to="/admin/products"
               className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center"
@@ -441,6 +441,20 @@ const DashboardPage = () => {
                 <h3 className="font-medium">Manage Users</h3>
                 <p className="text-sm text-gray-600">
                   View and manage user accounts
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/admin/coupons"
+              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center"
+            >
+              <div className="rounded-full p-3 bg-pink-100 text-pink-600 mr-4">
+                <FaTag size={20} />
+              </div>
+              <div>
+                <h3 className="font-medium">Manage Coupons</h3>
+                <p className="text-sm text-gray-600">
+                  Create and manage discount codes
                 </p>
               </div>
             </Link>

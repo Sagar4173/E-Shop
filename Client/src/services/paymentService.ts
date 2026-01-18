@@ -3,7 +3,7 @@ import { PaymentIntent } from "../types";
 
 // Create a Stripe payment intent with the order total
 export const createPaymentIntent = async (
-  amount: number
+  amount: number,
 ): Promise<PaymentIntent> => {
   try {
     // Handle zero amount orders with a special flow
@@ -27,7 +27,7 @@ export const createPaymentIntent = async (
     // Add specific error handling for common payment issues
     if (error.message?.includes("timeout")) {
       throw new Error(
-        "Payment system is currently slow to respond. Please try again in a few minutes."
+        "Payment system is currently slow to respond. Please try again in a few minutes.",
       );
     }
     throw error;
@@ -37,13 +37,13 @@ export const createPaymentIntent = async (
 // Create a Stripe payment intent for guest checkout
 export const createGuestPaymentIntent = async (
   amount: number,
-  guestInfo?: { name?: string; email?: string }
+  guestInfo?: { name?: string; email?: string },
 ): Promise<PaymentIntent> => {
   try {
     // Validate amount before making API call
     if (amount <= 0) {
       console.warn(
-        "Cannot create guest payment intent with zero or negative amount"
+        "Cannot create guest payment intent with zero or negative amount",
       );
       throw new Error("Payment amount must be greater than zero");
     }
@@ -61,7 +61,7 @@ export const createGuestPaymentIntent = async (
     console.error("Error in createGuestPaymentIntent:", error.message);
     if (error.message?.includes("timeout")) {
       throw new Error(
-        "Payment system is currently slow to respond. Please try again in a few minutes."
+        "Payment system is currently slow to respond. Please try again in a few minutes.",
       );
     }
     throw error;
@@ -71,7 +71,7 @@ export const createGuestPaymentIntent = async (
 // Confirm Stripe payment
 export const confirmPayment = async (
   paymentIntentId: string,
-  orderId: string
+  orderId: string,
 ) => {
   try {
     console.log(`Confirming payment: ${paymentIntentId} for order: ${orderId}`);
@@ -113,32 +113,41 @@ export const getStripePublicKey = async () => {
   }
 };
 
+// Payment processing response
+interface PaymentProcessingResponse {
+  success: boolean;
+  paymentIntent?: {
+    id: string;
+    status: string;
+  };
+}
+
 // Process payment for an order
 export const processPayment = async (
   orderId: string,
   paymentDetails: {
     paymentMethodId: string;
     amount: number;
-  }
-) => {
+  },
+): Promise<PaymentProcessingResponse> => {
   try {
     const response = await api.post(
       `/payments/process/${orderId}`,
-      paymentDetails
+      paymentDetails,
     );
     return response.data;
-  } catch (error: any) {
-    console.error("Payment processing error:", error);
-
-    // Enhanced error reporting
-    if (error.response) {
-      console.error("Error status:", error.response.status);
-      console.error("Error details:", error.response.data);
+  } catch (error: unknown) {
+    // Enhanced error reporting for development
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
 
       // Return more descriptive error message
       const errorMessage =
-        error.response.data?.message ||
-        error.message ||
+        apiError.response?.data?.message ||
+        apiError.message ||
         "Payment processing failed";
       throw new Error(errorMessage);
     }
@@ -148,12 +157,12 @@ export const processPayment = async (
 };
 
 // Check payment server health
-export const checkPaymentServerHealth = async () => {
+export const checkPaymentServerHealth = async (): Promise<boolean> => {
   try {
     const response = await api.get("/payments/health", { timeout: 5000 });
     return response.data.status === "ok";
-  } catch (error) {
-    console.warn("Payment server health check failed:", error);
+  } catch {
+    // Payment server health check failed - return false silently
     return false;
   }
 };

@@ -218,7 +218,7 @@ const WishlistPage = () => {
 
     try {
       const removePromises = wishlistItems.map((item) =>
-        removeFromWishlist(item._id)
+        removeFromWishlist(item._id),
       );
 
       await Promise.all(removePromises);
@@ -353,6 +353,7 @@ const WishlistPage = () => {
                     </span>
                     <div className="relative inline-block">
                       <select
+                        aria-label="Filter wishlist items"
                         className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-1 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         value={filterOption}
                         onChange={(e) =>

@@ -6,6 +6,9 @@ const { protect, admin } = require("../middlewares/authMiddleware");
 // Guest checkout route that doesn't require authentication
 router.post("/guest", orderController.createOrder);
 
+// Guest order tracking (by order ID and email)
+router.post("/track", orderController.trackGuestOrder);
+
 // Protected routes
 router.post("/", protect, orderController.createOrder);
 router.get("/myorders", protect, orderController.getMyOrders);
@@ -19,7 +22,7 @@ router.get("/:id", protect, orderController.getOrderById);
 router.get(
   "/:id/status-history",
   protect,
-  orderController.getOrderStatusHistory
+  orderController.getOrderStatusHistory,
 );
 router.put("/:id/pay", protect, orderController.updateOrderToPaid);
 
@@ -29,7 +32,7 @@ router.put(
   "/:id/return/:returnId",
   protect,
   admin,
-  orderController.updateReturnStatus
+  orderController.updateReturnStatus,
 );
 
 // Admin routes - with parameters

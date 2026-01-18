@@ -12,7 +12,7 @@ interface CartContextType {
 }
 
 export const CartContext = createContext<CartContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -35,15 +35,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     // Check on initial load
     checkUser();
 
-    // Set up event listener for auth changes
-    window.addEventListener("storage", (event) => {
+    // Set up event listener for auth changes - use named function for proper cleanup
+    const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "token" || event.key === "user") {
         checkUser();
       }
-    });
+    };
+
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener("storage", () => {});
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -118,7 +120,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const addToCart = (product: Product, quantity: number) => {
     setCartItems((prevItems) => {
       const existingItemIndex = prevItems.findIndex(
-        (item) => item.id === product._id || item.id === product.id
+        (item) => item.id === product._id || item.id === product.id,
       );
 
       if (existingItemIndex >= 0) {
@@ -157,7 +159,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     setCartItems((prevItems) =>
-      prevItems.map((item) => (item.id === id ? { ...item, quantity } : item))
+      prevItems.map((item) => (item.id === id ? { ...item, quantity } : item)),
     );
   };
 
@@ -170,7 +172,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const getCartTotal = () => {
     return cartItems.reduce(
       (total, item) => total + item.price * item.quantity,
-      0
+      0,
     );
   };
 

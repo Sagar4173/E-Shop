@@ -13,6 +13,8 @@ const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const emailRoutes = require("./routes/emailRoutes");
+const wishlistRoutes = require("./routes/wishlistRoutes");
+const couponRoutes = require("./routes/couponRoutes");
 const rateLimit = require("express-rate-limit");
 
 // Initialize Express app
@@ -73,7 +75,7 @@ app.use(
     useTempFiles: isProd, // Use temp files in production for better memory usage
     tempFileDir: "/tmp/",
     debug: !isProd,
-  })
+  }),
 );
 
 // Static folder for uploads - conditionally setup based on environment
@@ -99,8 +101,6 @@ const connectWithRetry = (retryCount = 0, maxRetries = 5) => {
   console.log(`MongoDB connection attempt ${retryCount + 1}/${maxRetries + 1}`);
 
   const connectionOptions = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: isProd ? 10000 : 15000, // Shorter timeout in production
     socketTimeoutMS: 60000,
     family: 4, // Force IPv4
@@ -123,7 +123,7 @@ const connectWithRetry = (retryCount = 0, maxRetries = 5) => {
         (err.syscall === "queryTxt" || err.syscall === "getaddrinfo")
       ) {
         console.log(
-          "DNS resolution issue detected. Trying alternative approach..."
+          "DNS resolution issue detected. Trying alternative approach...",
         );
 
         // Try to use a direct connection method if we're using SRV format
@@ -132,7 +132,7 @@ const connectWithRetry = (retryCount = 0, maxRetries = 5) => {
             // Extract parts from the original connection string
             const uriWithoutProtocol = process.env.MONGODB_URI.replace(
               "mongodb+srv://",
-              ""
+              "",
             );
             const [credentials, rest] = uriWithoutProtocol.split("@");
             const [host, dbPath] = rest.split("/");
@@ -149,17 +149,17 @@ const connectWithRetry = (retryCount = 0, maxRetries = 5) => {
               mongoose
                 .connect(directUri, { ...connectionOptions, ssl: true })
                 .then(() =>
-                  console.log("Connected to MongoDB using direct connection")
+                  console.log("Connected to MongoDB using direct connection"),
                 )
                 .catch((directErr) =>
-                  handleRetry(directErr, retryCount, maxRetries)
+                  handleRetry(directErr, retryCount, maxRetries),
                 );
             }, 2000);
             return;
           } catch (parseErr) {
             console.error(
               "Failed to parse connection string for direct connection:",
-              parseErr
+              parseErr,
             );
           }
         }
@@ -177,7 +177,7 @@ const handleRetry = (err, retryCount, maxRetries) => {
     console.log(
       `Retrying MongoDB connection in ${retryDelay / 1000} seconds... (${
         retryCount + 1
-      }/${maxRetries})`
+      }/${maxRetries})`,
     );
     setTimeout(() => {
       connectWithRetry(retryCount + 1, maxRetries);
@@ -186,7 +186,7 @@ const handleRetry = (err, retryCount, maxRetries) => {
     console.error(
       `Failed to connect to MongoDB after ${
         maxRetries + 1
-      } attempts. Service may be unavailable.`
+      } attempts. Service may be unavailable.`,
     );
 
     if (isProd) {
@@ -194,7 +194,7 @@ const handleRetry = (err, retryCount, maxRetries) => {
       console.error("CRITICAL: Database connection failed in production");
     } else {
       console.log(
-        "Server will continue to run, but MongoDB functionality will not work."
+        "Server will continue to run, but MongoDB functionality will not work.",
       );
     }
   }
@@ -210,6 +210,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/emails", emailRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/coupons", couponRoutes);
 
 // Health check route
 app.get("/", (req, res) => {

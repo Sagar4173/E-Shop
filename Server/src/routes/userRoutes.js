@@ -5,7 +5,10 @@ const {
   loginUser,
   getUserProfile,
   updateUserProfile,
+  updatePassword,
   getUsers,
+  getUserById,
+  getUserOrdersById,
   deleteUser,
   updateUserRole,
   forgotPassword,
@@ -31,10 +34,13 @@ router.post("/resend-verification", resendVerification);
 // Protected routes
 router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
+router.put("/profile/password", protect, updatePassword);
 router.post("/send-2fa", protect, send2FA);
 
 // Admin routes
 router.get("/", protect, admin, getUsers);
+router.get("/:id", protect, admin, getUserById);
+router.get("/:id/orders", protect, admin, getUserOrdersById);
 router.delete("/:id", protect, admin, deleteUser);
 router.put("/:id/role", protect, admin, updateUserRole);
 

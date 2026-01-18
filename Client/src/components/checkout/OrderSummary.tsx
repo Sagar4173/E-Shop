@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CartItem } from "../../types";
 import {
   FaCcVisa,
@@ -7,8 +8,11 @@ import {
   FaLock,
   FaExchangeAlt,
   FaRegClock,
+  FaTag,
+  FaTimes,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { validateCoupon, CouponValidation } from "../../services/couponService";
 
 interface OrderSummaryProps {
   cartItems: CartItem[];
@@ -16,6 +20,7 @@ interface OrderSummaryProps {
   loading?: boolean;
   orderPlaced?: boolean;
   orderId?: string;
+  onDiscountApplied?: (discount: number, couponCode: string) => void;
 }
 
 const OrderSummary = ({
@@ -24,11 +29,55 @@ const OrderSummary = ({
   loading = false,
   orderPlaced = false,
   orderId = "",
+  onDiscountApplied,
 }: OrderSummaryProps) => {
+  const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(
+    null,
+  );
+
   // Apply the same free shipping logic as in CartSummary.tsx
   const shipping = total >= 50 ? 0 : total > 0 ? 10 : 0;
-  const tax = total * 0.18; // 18% tax on checkout
-  const finalTotal = total + shipping + tax;
+  const discount = appliedCoupon?.discount || 0;
+  const subtotalAfterDiscount = total - discount;
+  const tax = subtotalAfterDiscount * 0.18; // 18% tax on checkout
+  const finalTotal = subtotalAfterDiscount + shipping + tax;
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
+      setPromoError("Please enter a promo code");
+      return;
+    }
+
+    setPromoError("");
+    setPromoLoading(true);
+
+    try {
+      const result = await validateCoupon(promoCode.trim(), total);
+      setAppliedCoupon(result);
+      if (onDiscountApplied) {
+        onDiscountApplied(result.discount, result.code);
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setPromoError(
+        error.response?.data?.message || "Invalid or expired coupon code",
+      );
+      setAppliedCoupon(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setPromoCode("");
+    if (onDiscountApplied) {
+      onDiscountApplied(0, "");
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
@@ -60,6 +109,15 @@ const OrderSummary = ({
           <span className="text-gray-600">Subtotal:</span>
           <span className="text-gray-800">₹{total.toFixed(2)}</span>
         </div>
+        {appliedCoupon && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span className="flex items-center">
+              <FaTag className="mr-1" />
+              Discount ({appliedCoupon.code}):
+            </span>
+            <span>-₹{appliedCoupon.discount.toFixed(2)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Shipping:</span>
           <span className="text-gray-800">
@@ -77,7 +135,7 @@ const OrderSummary = ({
       </div>
 
       {/* Promo code input */}
-      {!orderPlaced && (
+      {!orderPlaced && !appliedCoupon && (
         <div className="mt-6">
           <label
             htmlFor="promo"
@@ -89,16 +147,50 @@ const OrderSummary = ({
             <input
               type="text"
               id="promo"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
               className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter code"
+              disabled={promoLoading}
             />
             <button
               type="button"
-              className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={handleApplyPromo}
+              disabled={promoLoading}
+              className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              Apply
+              {promoLoading ? "..." : "Apply"}
             </button>
           </div>
+          {promoError && (
+            <p className="text-red-500 text-xs mt-1">{promoError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Applied coupon display */}
+      {!orderPlaced && appliedCoupon && (
+        <div className="mt-6 p-3 bg-green-50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-green-700">
+              <FaTag className="mr-2" />
+              <span className="font-medium">{appliedCoupon.code}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="text-gray-500 hover:text-red-500"
+              aria-label="Remove coupon"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          <p className="text-sm text-green-600 mt-1">
+            {appliedCoupon.discountType === "percentage"
+              ? `${appliedCoupon.discountValue}% off`
+              : `₹${appliedCoupon.discountValue} off`}
+            {appliedCoupon.description && ` - ${appliedCoupon.description}`}
+          </p>
         </div>
       )}
 

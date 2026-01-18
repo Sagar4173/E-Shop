@@ -118,10 +118,7 @@ const products = [
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected for seeding"))
   .catch((err) => {
     console.error("MongoDB connection error:", err);
@@ -198,7 +195,7 @@ const importFakeStoreProducts = async () => {
     await Product.insertMany(productsWithUser);
 
     console.log(
-      `${productsWithUser.length} products imported from Fake Store API!`
+      `${productsWithUser.length} products imported from Fake Store API!`,
     );
     process.exit();
   } catch (error) {

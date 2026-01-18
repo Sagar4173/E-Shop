@@ -24,6 +24,7 @@ import AdminUsersPage from "./pages/admin/UsersPage";
 import AdminUserDetailPage from "./pages/admin/UserDetailPage";
 import ProductFormPage from "./pages/admin/ProductFormPage";
 import ReturnsPage from "./pages/admin/ReturnsPage";
+import CouponsPage from "./pages/admin/CouponsPage";
 import AboutPage from "./pages/info/AboutPage";
 import ContactPage from "./pages/info/ContactPage";
 import ShippingPage from "./pages/info/ShippingPage";
@@ -31,6 +32,7 @@ import ReturnPolicyPage from "./pages/info/ReturnPolicyPage";
 import FAQPage from "./pages/info/FAQPage";
 import TermsPage from "./pages/info/TermsPage";
 import OrderDetailPage from "./pages/account/OrderDetailPage";
+import TrackOrderPage from "./pages/orders/TrackOrderPage";
 import NotFoundPage from "./pages/error/NotFoundPage";
 import LoadingPage from "./components/common/LoadingPage";
 import ErrorBoundary from "./components/error/ErrorBoundary";
@@ -60,6 +62,7 @@ const App = () => {
               <Route path="/returns" element={<ReturnPolicyPage />} />
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/terms" element={<TermsPage />} />
+              <Route path="/track-order" element={<TrackOrderPage />} />
 
               {/* Auth Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -101,6 +104,7 @@ const App = () => {
                 element={<ProductFormPage />}
               />
               <Route path="/admin/returns" element={<ReturnsPage />} />
+              <Route path="/admin/coupons" element={<CouponsPage />} />
 
               {/* Not Found Route - Must be the last route */}
               <Route path="*" element={<NotFoundPage />} />

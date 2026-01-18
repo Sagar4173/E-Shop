@@ -1,36 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const emailController = require("../controllers/emailController");
-const { protect, admin } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  admin,
+  optionalAuth,
+} = require("../middlewares/authMiddleware");
 
-// Public routes
+// Public routes (some with optional auth for validation)
 router.post("/welcome", emailController.sendWelcomeEmail);
 router.post("/password-reset", emailController.sendPasswordResetEmail);
 router.post("/password-reset-otp", emailController.sendPasswordResetOtpEmail);
 router.post("/contact-form", emailController.sendContactFormConfirmation);
 router.post("/verification-otp", emailController.sendVerificationOtpEmail);
-router.post("/send-invoice", emailController.sendInvoiceEmail);
+router.post("/send-invoice", optionalAuth, emailController.sendInvoiceEmail);
 
 // Protected routes
 router.post(
   "/order-confirmation",
   protect,
-  emailController.sendOrderConfirmation
+  emailController.sendOrderConfirmation,
 );
 router.post(
   "/order-status-update",
   protect,
-  emailController.sendOrderStatusUpdate
+  emailController.sendOrderStatusUpdate,
 );
 router.post(
   "/shipping-notification",
   protect,
-  emailController.sendShippingNotification
+  emailController.sendShippingNotification,
 );
 router.post(
   "/return-request",
   protect,
-  emailController.sendReturnRequestConfirmation
+  emailController.sendReturnRequestConfirmation,
 );
 router.post("/return-status", protect, emailController.sendReturnStatusUpdate);
 
@@ -39,7 +43,7 @@ router.post(
   "/inventory-alert",
   protect,
   admin,
-  emailController.sendLowInventoryAlert
+  emailController.sendLowInventoryAlert,
 );
 
 module.exports = router;

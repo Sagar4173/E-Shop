@@ -154,8 +154,8 @@ const AdminOrdersPage = () => {
         // Update the order in the local state
         setOrders(
           orders.map((order) =>
-            order._id === orderId ? { ...order, status: newStatus } : order
-          )
+            order._id === orderId ? { ...order, status: newStatus } : order,
+          ),
         );
       }
     } catch (error) {
@@ -198,8 +198,8 @@ const AdminOrdersPage = () => {
                 status: newStatus,
                 trackingNumber: data.trackingNumber,
               }
-            : order
-        )
+            : order,
+        ),
       );
 
       closeStatusModal();
@@ -245,14 +245,14 @@ const AdminOrdersPage = () => {
           } catch (err) {
             console.error(
               `Error downloading invoice for order ${order._id}:`,
-              err
+              err,
             );
           }
         }
       }
 
       setSuccessMessage(
-        `Successfully downloaded ${selectedOrders.length} invoices`
+        `Successfully downloaded ${selectedOrders.length} invoices`,
       );
       setTimeout(() => setSuccessMessage(""), 3000);
 
@@ -280,7 +280,7 @@ const AdminOrdersPage = () => {
 
         if (order) {
           const success = await emailInvoice(
-            order as unknown as import("../../types").Order
+            order as unknown as import("../../types").Order,
           );
           if (success) {
             successCount++;
@@ -288,8 +288,8 @@ const AdminOrdersPage = () => {
             // Mark order as having invoice sent
             setOrders(
               orders.map((o) =>
-                o._id === orderId ? { ...o, invoiceSent: true } : o
-              )
+                o._id === orderId ? { ...o, invoiceSent: true } : o,
+              ),
             );
           }
           setProgressCount(i + 1);
@@ -297,7 +297,7 @@ const AdminOrdersPage = () => {
       }
 
       setSuccessMessage(
-        `Successfully emailed ${successCount} out of ${selectedOrders.length} invoices`
+        `Successfully emailed ${successCount} out of ${selectedOrders.length} invoices`,
       );
       setTimeout(() => setSuccessMessage(""), 5000);
 
@@ -323,7 +323,7 @@ const AdminOrdersPage = () => {
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filteredOrders.slice(
     indexOfFirstOrder,
-    indexOfLastOrder
+    indexOfLastOrder,
   );
 
   // Calculate total pages
@@ -347,8 +347,10 @@ const AdminOrdersPage = () => {
                 Status
               </label>
               <select
+                id="order-status-modal"
+                aria-label="Order status"
                 className={`w-full border rounded-md py-2 px-3 ${getStatusClass(
-                  selectedOrder.status
+                  selectedOrder.status,
                 )}`}
                 value={selectedOrder.status}
                 onChange={(e) =>
@@ -587,6 +589,8 @@ const AdminOrdersPage = () => {
                 Status:
               </label>
               <select
+                id="status-filter"
+                aria-label="Filter by status"
                 className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -618,6 +622,7 @@ const AdminOrdersPage = () => {
                             checked={selectAll}
                             onChange={handleSelectAllOrders}
                             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            aria-label="Select all orders"
                           />
                         </th>
                         <th
@@ -681,6 +686,7 @@ const AdminOrdersPage = () => {
                                 checked={selectedOrders.includes(order._id)}
                                 onChange={() => handleSelectOrder(order._id)}
                                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                aria-label={`Select order ${order._id.substring(order._id.length - 6).toUpperCase()}`}
                               />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -717,7 +723,7 @@ const AdminOrdersPage = () => {
                               <div className="flex flex-col">
                                 <span
                                   className={`text-sm font-medium px-2 py-1 rounded mb-1 text-center ${getStatusClass(
-                                    order.status
+                                    order.status,
                                   )}`}
                                 >
                                   {order.status.charAt(0).toUpperCase() +
@@ -760,11 +766,11 @@ const AdminOrdersPage = () => {
                                   if (order.isPaid) {
                                     // Cast the order to match the expected type for downloadInvoice
                                     downloadInvoice(
-                                      order as unknown as import("../../types").Order
+                                      order as unknown as import("../../types").Order,
                                     );
                                   } else {
                                     alert(
-                                      "Cannot download invoice for unpaid order"
+                                      "Cannot download invoice for unpaid order",
                                     );
                                   }
                                 }}

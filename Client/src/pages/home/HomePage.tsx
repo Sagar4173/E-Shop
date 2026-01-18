@@ -20,8 +20,6 @@ const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [featuredProductsLoading, setFeaturedProductsLoading] =
-    useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [email, setEmail] = useState<string>("");
@@ -92,28 +90,23 @@ const HomePage = () => {
       try {
         setLoading(true);
 
-        // Load featured products
-        const featuredData = await getFeaturedProducts();
+        // Load featured products and new arrivals in parallel for better performance
+        const [featuredData, newArrivalsData] = await Promise.all([
+          getFeaturedProducts(),
+          getProducts({ sort: "newest", limit: 8 }),
+        ]);
+
         setFeaturedProducts(featuredData);
 
-        // Load new arrivals (latest products)
-        try {
-          setFeaturedProductsLoading(true);
-          const data = await getProducts({ sort: "newest", limit: 8 });
-          // Handle both response formats (array or object with products property)
-          const products = Array.isArray(data)
-            ? data
-            : (data as any).products || [];
-          setFeaturedProducts(products);
-          setFeaturedProductsLoading(false);
-        } catch (error) {
-          setError("Failed to load products");
-          setLoading(false);
-        }
-
-        setLoading(false);
+        // Handle both response formats (array or object with products property)
+        const arrivals = Array.isArray(newArrivalsData)
+          ? newArrivalsData
+          : (newArrivalsData as unknown as { products: Product[] }).products ||
+            [];
+        setNewArrivals(arrivals);
       } catch (err) {
         setError("Failed to load products");
+      } finally {
         setLoading(false);
       }
     };
@@ -135,7 +128,7 @@ const HomePage = () => {
 
   const prevSlide = () => {
     setCurrentSlide(
-      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length
+      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length,
     );
   };
 
@@ -198,13 +191,14 @@ const HomePage = () => {
 
         {/* Carousel Controls */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-30">
-          {heroSlides.map((_, index) => (
+          {heroSlides.map((slide, index) => (
             <button
               key={index}
               className={`w-3 h-3 rounded-full transition-colors ${
                 currentSlide === index ? "bg-white" : "bg-white/40"
               }`}
               onClick={() => setCurrentSlide(index)}
+              aria-label={`Go to slide ${index + 1}: ${slide.title}`}
             />
           ))}
         </div>
@@ -212,6 +206,7 @@ const HomePage = () => {
         <button
           className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full z-30"
           onClick={prevSlide}
+          aria-label="Previous slide"
         >
           <FaAngleLeft size={20} />
         </button>
@@ -219,6 +214,7 @@ const HomePage = () => {
         <button
           className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full z-30"
           onClick={nextSlide}
+          aria-label="Next slide"
         >
           <FaAngleRight size={20} />
         </button>

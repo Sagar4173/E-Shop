@@ -45,10 +45,10 @@ const emailTemplates = {
                   item.quantity
                 }</td>
                 <td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">₹${item.price.toFixed(
-                  2
+                  2,
                 )}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </table>
@@ -58,7 +58,7 @@ const emailTemplates = {
               <tr>
                 <td style="text-align: right;">Subtotal:</td>
                 <td style="text-align: right; width: 100px;">₹${order.subtotal.toFixed(
-                  2
+                  2,
                 )}</td>
               </tr>
               <tr>
@@ -72,13 +72,13 @@ const emailTemplates = {
               <tr>
                 <td style="text-align: right;">Tax:</td>
                 <td style="text-align: right;">₹${order.taxAmount.toFixed(
-                  2
+                  2,
                 )}</td>
               </tr>
               <tr style="font-weight: bold;">
                 <td style="text-align: right;">Total:</td>
                 <td style="text-align: right;">₹${order.totalAmount.toFixed(
-                  2
+                  2,
                 )}</td>
               </tr>
             </table>
@@ -90,8 +90,8 @@ const emailTemplates = {
               ${order.shippingAddress.fullName || ""}<br>
               ${order.shippingAddress.address}<br>
               ${order.shippingAddress.city}, ${order.shippingAddress.state} ${
-      order.shippingAddress.postalCode
-    }<br>
+                order.shippingAddress.postalCode
+              }<br>
               ${order.shippingAddress.country}
             </p>
           </div>
@@ -429,7 +429,7 @@ const sendEmail = async (to, subject, htmlContent) => {
       !process.env.EMAIL_PASS
     ) {
       console.error(
-        "Email configuration incomplete. Check environment variables."
+        "Email configuration incomplete. Check environment variables.",
       );
       return {
         success: false,
@@ -489,7 +489,7 @@ const sendEmailWithAttachment = async (
   to,
   subject,
   htmlContent,
-  attachments
+  attachments,
 ) => {
   try {
     if (
@@ -498,7 +498,7 @@ const sendEmailWithAttachment = async (
       !process.env.EMAIL_PASS
     ) {
       console.error(
-        "Email configuration incomplete. Check environment variables."
+        "Email configuration incomplete. Check environment variables.",
       );
       return {
         success: false,
@@ -600,7 +600,7 @@ const generateInvoicePdf = async (order) => {
         .text(
           "www.ecommerceplatform.com | support@ecommerce.com | +91 1234567890",
           50,
-          30
+          30,
         );
     }
 
@@ -647,12 +647,12 @@ const generateInvoicePdf = async (order) => {
       .text(
         order.shippingAddress.address || order.shippingAddress.street || "",
         53,
-        startY + 18
+        startY + 18,
       )
       .text(
         `${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.postalCode}`,
         53,
-        startY + 24
+        startY + 24,
       )
       .text(order.shippingAddress.country || "N/A", 53, startY + 30);
 
@@ -695,13 +695,13 @@ const generateInvoicePdf = async (order) => {
         startY + 12,
         {
           align: "right",
-        }
+        },
       )
       .text(
         `#${orderIdString.substring(0, 8).toUpperCase()}`,
         pageWidth - 120,
         startY + 18,
-        { align: "right" }
+        { align: "right" },
       )
       .text(invoiceDate, pageWidth - 120, startY + 24, { align: "right" })
       .text(orderDate, pageWidth - 120, startY + 30, { align: "right" });
@@ -812,7 +812,7 @@ const generateInvoicePdf = async (order) => {
         .text(
           "Error displaying order items. Please contact support.",
           100,
-          tableTop + 30
+          tableTop + 30,
         );
       y = tableTop + 50; // Move below the error message
     }
@@ -841,7 +841,7 @@ const generateInvoicePdf = async (order) => {
           ? `₹${order.shippingAmount.toFixed(2)}`
           : "Free",
         490,
-        y
+        y,
       );
     y += 15;
 
@@ -881,12 +881,12 @@ const generateInvoicePdf = async (order) => {
         .text(
           "• Return Policy: Items can be returned within 30 days of delivery in original condition.",
           52,
-          policyY + 10
+          policyY + 10,
         )
         .text(
           "• Payment Method: " + (order.paymentMethod || "Credit/Debit Card"),
           52,
-          policyY + 14
+          policyY + 14,
         );
 
       // Add note for refunds
@@ -894,20 +894,20 @@ const generateInvoicePdf = async (order) => {
         doc.text(
           "• This order has an active return request. Refund will be processed after return is completed.",
           52,
-          policyY + 18
+          policyY + 18,
         );
       } else {
         doc.text(
           "• For returns, visit your account dashboard or contact support@ecommerce.com",
           52,
-          policyY + 18
+          policyY + 18,
         );
       }
 
       doc.text(
         "• To download a digital copy of this invoice, visit your account page at www.ecommerceplatform.com",
         52,
-        policyY + 22
+        policyY + 22,
       );
     } catch (policyErr) {
       console.error("Error adding policy info:", policyErr);
@@ -923,13 +923,13 @@ const generateInvoicePdf = async (order) => {
           "E-Commerce Platform | Tax ID: GSTIN12345678 | www.ecommerceplatform.com",
           pageWidth / 2,
           pageHeight - 30,
-          { align: "center" }
+          { align: "center" },
         )
         .text(
           `Invoice generated on: ${new Date().toLocaleString()} | Page 1 of 1`,
           pageWidth / 2,
           pageHeight - 20,
-          { align: "center" }
+          { align: "center" },
         );
 
       // Add bottom border
@@ -1004,7 +1004,7 @@ exports.sendOrderConfirmation = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences"
+      "name email notificationPreferences",
     );
 
     if (!order) {
@@ -1026,7 +1026,7 @@ exports.sendOrderConfirmation = async (req, res) => {
     const result = await sendEmail(
       recipient,
       `Order Confirmation #${orderId.toString().substring(0, 8).toUpperCase()}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1055,7 +1055,7 @@ exports.sendOrderStatusUpdate = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences"
+      "name email notificationPreferences",
     );
 
     if (!order) {
@@ -1090,7 +1090,7 @@ exports.sendOrderStatusUpdate = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1119,7 +1119,7 @@ exports.sendShippingNotification = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences"
+      "name email notificationPreferences",
     );
 
     if (!order) {
@@ -1150,7 +1150,7 @@ exports.sendShippingNotification = async (req, res) => {
     const emailContent = emailTemplates.shippingNotification(
       order,
       trackingNumber,
-      note
+      note,
     );
     const result = await sendEmail(
       recipientEmail,
@@ -1158,7 +1158,7 @@ exports.sendShippingNotification = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1187,7 +1187,7 @@ exports.sendReturnRequestConfirmation = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences"
+      "name email notificationPreferences",
     );
 
     if (!order) {
@@ -1230,7 +1230,7 @@ exports.sendReturnRequestConfirmation = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1259,7 +1259,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences"
+      "name email notificationPreferences",
     );
 
     if (!order) {
@@ -1299,7 +1299,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
       order,
       returnItem,
       status,
-      comments
+      comments,
     );
     const result = await sendEmail(
       recipientEmail,
@@ -1307,7 +1307,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1338,7 +1338,7 @@ exports.sendWelcomeEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Welcome to E-Commerce Platform!",
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1371,7 +1371,7 @@ exports.sendPasswordResetEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Password Reset Request",
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1402,7 +1402,7 @@ exports.sendPasswordResetOtpEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Password Reset Verification Code",
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1448,7 +1448,7 @@ exports.sendContactFormConfirmation = async (req, res) => {
     const adminResult = await sendEmail(
       process.env.ADMIN_EMAIL || "admin@ecommerce.com",
       `New Contact Form: ${subject}`,
-      adminEmailContent
+      adminEmailContent,
     );
 
     res.json({
@@ -1482,7 +1482,7 @@ exports.sendLowInventoryAlert = async (req, res) => {
     const result = await sendEmail(
       process.env.ADMIN_EMAIL || "admin@ecommerce.com",
       `Low Inventory Alert: ${productName}`,
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1513,7 +1513,7 @@ exports.sendVerificationOtpEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Verify Your Email Address",
-      emailContent
+      emailContent,
     );
 
     res.json(result);
@@ -1528,7 +1528,7 @@ exports.sendVerificationOtpEmail = async (req, res) => {
 
 // @desc    Send invoice email
 // @route   POST /api/emails/send-invoice
-// @access  Public
+// @access  Public (with order ownership validation)
 exports.sendInvoiceEmail = async (req, res) => {
   try {
     const { orderId, recipientEmail } = req.body;
@@ -1558,6 +1558,27 @@ exports.sendInvoiceEmail = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Order not found",
+      });
+    }
+
+    // Security: Validate that the requester is authorized to access this order
+    const isOwner =
+      req.user &&
+      order.user &&
+      order.user._id.toString() === req.user._id.toString();
+    const isAdmin = req.user && req.user.isAdmin;
+    const isGuestOrder = order.isGuestOrder;
+    const emailMatchesOrder =
+      recipientEmail === order.shippingAddress.email ||
+      (order.paymentResult &&
+        recipientEmail === order.paymentResult.email_address) ||
+      (order.user && recipientEmail === order.user.email);
+
+    // Allow if: owner, admin, or guest order with matching email
+    if (!isOwner && !isAdmin && !(isGuestOrder && emailMatchesOrder)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to send invoice for this order",
       });
     }
 
@@ -1598,13 +1619,13 @@ exports.sendInvoiceEmail = async (req, res) => {
               <tr>
                 <td style="padding: 8px 0; color: #666;">Order Date:</td>
                 <td style="padding: 8px 0; text-align: right;">${new Date(
-                  order.createdAt
+                  order.createdAt,
                 ).toLocaleDateString()}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #666;">Total Amount:</td>
                 <td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${order.totalAmount.toFixed(
-                  2
+                  2,
                 )}</td>
               </tr>
               <tr>
@@ -1671,7 +1692,7 @@ exports.sendInvoiceEmail = async (req, res) => {
             content: pdf,
             contentType: "application/pdf",
           },
-        ]
+        ],
       );
 
       res.json(result);

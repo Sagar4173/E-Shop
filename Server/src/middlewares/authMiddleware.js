@@ -83,6 +83,43 @@ exports.admin = (req, res, next) => {
   }
 };
 
+// Optional authentication - doesn't fail if no token provided
+// Sets req.user if valid token exists, otherwise continues without user
+exports.optionalAuth = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1]?.trim();
+
+      if (
+        token &&
+        token !== "null" &&
+        token !== "undefined" &&
+        token.length >= 20
+      ) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select("-password");
+
+        if (user) {
+          const tokenExp = decoded.exp * 1000;
+          if (Date.now() < tokenExp) {
+            req.user = user;
+          }
+        }
+      }
+    } catch (error) {
+      // Silently ignore auth errors for optional auth
+      // User just won't be set
+    }
+  }
+
+  next();
+};
+
 // Generate JWT token with expiry - updated to include user role for easier client-side checks
 exports.generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {

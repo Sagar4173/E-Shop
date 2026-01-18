@@ -82,7 +82,7 @@ const ProductsPage = () => {
 
         // Define a type guard to check if the response has products property
         const hasProductsProperty = (
-          obj: any
+          obj: any,
         ): obj is { products: Product[]; totalProducts?: number } => {
           return obj && typeof obj === "object" && "products" in obj;
         };
@@ -204,6 +204,7 @@ const ProductsPage = () => {
               <button
                 onClick={() => updateFilters({ category: null })}
                 className="ml-1 text-gray-500 hover:text-gray-700"
+                aria-label={`Remove category filter: ${categoryFilter}`}
               >
                 <FaTimes size={10} />
               </button>
@@ -216,6 +217,7 @@ const ProductsPage = () => {
               <button
                 onClick={() => updateFilters({ search: null })}
                 className="ml-1 text-gray-500 hover:text-gray-700"
+                aria-label={`Remove search filter: ${searchQuery}`}
               >
                 <FaTimes size={10} />
               </button>
@@ -228,6 +230,7 @@ const ProductsPage = () => {
               <button
                 onClick={() => updateFilters({ min: null, max: null })}
                 className="ml-1 text-gray-500 hover:text-gray-700"
+                aria-label="Remove price filter"
               >
                 <FaTimes size={10} />
               </button>
@@ -338,7 +341,7 @@ const ProductsPage = () => {
                           {pageNum}
                         </button>
                       );
-                    }
+                    },
                   )}
 
                   <button

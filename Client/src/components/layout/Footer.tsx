@@ -116,6 +116,14 @@ const Footer = () => {
             <ul className="space-y-4">
               <li>
                 <Link
+                  to="/track-order"
+                  className="text-gray-400 hover:text-white transition-colors inline-block"
+                >
+                  Track Your Order
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/shipping"
                   className="text-gray-400 hover:text-white transition-colors inline-block"
                 >

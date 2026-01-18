@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -53,11 +53,51 @@ const ProductDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [itemInCart, setItemInCart] = useState<boolean>(false);
 
+  // Refs for timeout cleanup to prevent memory leaks
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cartAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const wishlistAnimationTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
   const { addToCart, removeFromCart, cartItems } = useContext(CartContext) || {
     addToCart: () => console.error("CartContext not available"),
     removeFromCart: () => console.error("CartContext not available"),
     cartItems: [],
   };
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (cartAnimationTimeoutRef.current)
+        clearTimeout(cartAnimationTimeoutRef.current);
+      if (wishlistAnimationTimeoutRef.current)
+        clearTimeout(wishlistAnimationTimeoutRef.current);
+    };
+  }, []);
+
+  // Helper function to show toast with auto-hide
+  const showToastMessage = useCallback(
+    (message: string, type: "success" | "error") => {
+      // Clear any existing toast timeout
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+
+      setToastMessage(message);
+      setToastType(type);
+      setShowToast(true);
+
+      // Auto-hide toast after 3 seconds
+      toastTimeoutRef.current = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+    },
+    [],
+  );
 
   useEffect(() => {
     // Check if user is authenticated
@@ -68,7 +108,7 @@ const ProductDetailPage = () => {
   useEffect(() => {
     if (product && cartItems) {
       const existingItem = cartItems.find(
-        (item) => item.id === product._id || item._id === product._id
+        (item) => item.id === product._id || item._id === product._id,
       );
       setItemInCart(!!existingItem);
       if (existingItem) {
@@ -145,20 +185,18 @@ const ProductDetailPage = () => {
       // Visual feedback for add to cart button
       setAddedToCart(true);
 
+      // Clear any existing cart animation timeout
+      if (cartAnimationTimeoutRef.current) {
+        clearTimeout(cartAnimationTimeoutRef.current);
+      }
+
       // Reset the button state after animation completes
-      setTimeout(() => {
+      cartAnimationTimeoutRef.current = setTimeout(() => {
         setAddedToCart(false);
       }, 1500);
 
-      // Show success toast
-      setToastMessage("Added to cart successfully!");
-      setToastType("success");
-      setShowToast(true);
-
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
+      // Show success toast using helper
+      showToastMessage("Added to cart successfully!", "success");
     }
   };
 
@@ -167,15 +205,8 @@ const ProductDetailPage = () => {
       removeFromCart(product._id);
       setItemInCart(false);
 
-      // Show success toast
-      setToastMessage("Removed from cart successfully!");
-      setToastType("success");
-      setShowToast(true);
-
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
+      // Show success toast using helper
+      showToastMessage("Removed from cart successfully!", "success");
     }
   };
 
@@ -197,14 +228,7 @@ const ProductDetailPage = () => {
 
   const handleWishlistToggle = async () => {
     if (!isUserAuthenticated) {
-      setToastMessage("Please log in to add items to your wishlist");
-      setToastType("error");
-      setShowToast(true);
-
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
+      showToastMessage("Please log in to add items to your wishlist", "error");
       return;
     }
 
@@ -217,40 +241,33 @@ const ProductDetailPage = () => {
         setInWishlist(false);
 
         // Show toast
-        setToastMessage("Removed from wishlist");
-        setToastType("success");
-        setShowToast(true);
+        showToastMessage("Removed from wishlist", "success");
       } else {
         await addToWishlist(product);
         setInWishlist(true);
 
+        // Clear any existing wishlist animation timeout
+        if (wishlistAnimationTimeoutRef.current) {
+          clearTimeout(wishlistAnimationTimeoutRef.current);
+        }
+
         // Trigger animation
         setWishlistAnimation(true);
-        setTimeout(() => {
+        wishlistAnimationTimeoutRef.current = setTimeout(() => {
           setWishlistAnimation(false);
         }, 1000);
 
         // Show toast
-        setToastMessage("Added to wishlist");
-        setToastType("success");
-        setShowToast(true);
+        showToastMessage("Added to wishlist", "success");
       }
 
       // Dispatch storage event to update wishlish counter in header
       window.dispatchEvent(new StorageEvent("storage", { key: "wishlist" }));
     } catch (error) {
       console.error("Failed to update wishlist:", error);
-
-      setToastMessage("Failed to update wishlist");
-      setToastType("error");
-      setShowToast(true);
+      showToastMessage("Failed to update wishlist", "error");
     } finally {
       setWishlistLoading(false);
-
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
     }
   };
 
@@ -408,7 +425,7 @@ const ProductDetailPage = () => {
                     {Math.round(
                       ((product.originalPrice - product.price) /
                         product.originalPrice) *
-                        100
+                        100,
                     )}
                     % Off
                   </span>
@@ -494,7 +511,7 @@ const ProductDetailPage = () => {
                 {Math.round(
                   ((product.originalPrice - product.price) /
                     product.originalPrice) *
-                    100
+                    100,
                 )}
                 %
               </span>
@@ -612,8 +629,8 @@ const ProductDetailPage = () => {
                   addedToCart
                     ? "bg-green-600 text-white"
                     : product.stock > 0
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-300 cursor-not-allowed text-gray-500"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-gray-300 cursor-not-allowed text-gray-500"
                 }`}
               >
                 {addedToCart ? (
@@ -824,7 +841,7 @@ const ProductDetailPage = () => {
                                   year: "numeric",
                                   month: "short",
                                   day: "numeric",
-                                }
+                                },
                               )
                             : "N/A"}
                         </span>

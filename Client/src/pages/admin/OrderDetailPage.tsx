@@ -126,8 +126,8 @@ const AdminOrderDetailPage = () => {
             setActivityLog((prev) =>
               [...prev, ...returnActivities].sort(
                 (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-              )
+                  new Date(b.date).getTime() - new Date(a.date).getTime(),
+              ),
             );
           }
         } catch (err) {
@@ -366,8 +366,10 @@ const AdminOrderDetailPage = () => {
                 Status
               </label>
               <select
+                id="order-status-select"
+                aria-label="Order status"
                 className={`w-full border rounded-md py-2 px-3 ${getStatusClass(
-                  newStatus
+                  newStatus,
                 )}`}
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
@@ -449,7 +451,7 @@ const AdminOrderDetailPage = () => {
               </h1>
               <span
                 className={`text-sm font-medium px-3 py-1 rounded-full ${getStatusClass(
-                  order.status
+                  order.status,
                 )}`}
               >
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -682,10 +684,12 @@ const AdminOrderDetailPage = () => {
                         value={trackingNumber}
                         onChange={(e) => setTrackingNumber(e.target.value)}
                         placeholder="Enter tracking number"
+                        aria-label="Tracking number"
                       />
                       <button
                         className="bg-blue-600 text-white px-2 py-1 rounded text-sm hover:bg-blue-700"
                         onClick={saveTracking}
+                        aria-label="Save tracking number"
                       >
                         <FaSave className="mr-1 inline" /> Save
                       </button>
@@ -695,6 +699,7 @@ const AdminOrderDetailPage = () => {
                           setTrackingNumber(order.trackingNumber || "");
                           setEditingTracking(false);
                         }}
+                        aria-label="Cancel editing tracking number"
                       >
                         <FaTimes />
                       </button>
@@ -785,12 +790,12 @@ const AdminOrderDetailPage = () => {
                             activity.type === "status"
                               ? "bg-blue-500"
                               : activity.type === "return"
-                              ? "bg-yellow-500"
-                              : activity.type === "email"
-                              ? "bg-green-500"
-                              : activity.type === "tracking"
-                              ? "bg-purple-500"
-                              : "bg-gray-500"
+                                ? "bg-yellow-500"
+                                : activity.type === "email"
+                                  ? "bg-green-500"
+                                  : activity.type === "tracking"
+                                    ? "bg-purple-500"
+                                    : "bg-gray-500"
                           }`}
                         ></div>
                         <div>
@@ -836,8 +841,8 @@ const AdminOrderDetailPage = () => {
                       request.status === "approved"
                         ? "border-green-200 bg-green-50"
                         : request.status === "rejected"
-                        ? "border-red-200 bg-red-50"
-                        : "border-yellow-200 bg-yellow-50"
+                          ? "border-red-200 bg-red-50"
+                          : "border-yellow-200 bg-yellow-50"
                     } rounded-md p-4 mb-4`}
                   >
                     <div className="flex justify-between items-start">
@@ -857,8 +862,8 @@ const AdminOrderDetailPage = () => {
                           request.status === "approved"
                             ? "bg-green-100 text-green-800"
                             : request.status === "rejected"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
                         {request.status.charAt(0).toUpperCase() +
@@ -1079,7 +1084,7 @@ const AdminOrderDetailPage = () => {
                             <div className="text-gray-600">Update Time:</div>
                             <div>
                               {new Date(
-                                order.paymentResult.update_time
+                                order.paymentResult.update_time,
                               ).toLocaleString()}
                             </div>
                           </>
