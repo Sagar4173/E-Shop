@@ -10,8 +10,8 @@
     "dev:client": "cd Client && npm run dev",
     "dev:server": "cd Server && npm run dev",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "vercel-build": "cd Client && npm install && npm run build",
-    "build": "cd Client && npm install && npm run build",
+    "vercel-build": "bash vercel-build.sh",
+    "build": "bash vercel-build.sh",
     "start": "cd Server && npm run start"
   },
   "engines": {
