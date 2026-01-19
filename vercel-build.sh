@@ -15,17 +15,19 @@ legacy-peer-deps=true
 shamefully-hoist=true
 strict-peer-dependencies=false
 rollup_skip_nodejs_native=1
+workspaces=false
 EOL
 
 # Force Rollup to use the JS implementation
 export ROLLUP_SKIP_NODEJS_NATIVE=1
 export ROLLUP_NATIVE=0
+export NPM_CONFIG_WORKSPACES=false
 
 # Clean install with specific Vite version that works better in Vercel
 echo "Installing specific package versions..."
 rm -f package-lock.json
-npm install --no-package-lock
-npm install esbuild@0.18.20 --save-exact
+npm install --no-package-lock --workspaces=false
+npm install esbuild@0.18.20 --save-exact --workspaces=false
 
 # Build with environment variables to skip native modules
 echo "Building client..."
