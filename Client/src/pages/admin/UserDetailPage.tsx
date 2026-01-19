@@ -1,35 +1,36 @@
-import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import {
   FaArrowLeft,
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaShoppingBag,
-  FaEdit,
-  FaTrash,
-  FaKey,
-  FaCheck,
-  FaTimes,
   FaCalendarAlt,
+  FaCheck,
+  FaEdit,
+  FaEnvelope,
   FaIdCard,
+  FaKey,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaShoppingBag,
+  FaTimes,
+  FaTrash,
+  FaUser,
 } from "react-icons/fa";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { getCurrentUser, isAuthenticated } from "../../services/authService";
+import { getUserOrders } from "../../services/orderService";
 import {
+  deleteUser,
   getUserById,
   updateUserRole,
-  deleteUser,
 } from "../../services/userService";
-import { getUserOrders } from "../../services/orderService";
-import { isAuthenticated, getCurrentUser } from "../../services/authService";
 
 interface UserAddress {
-  fullName: string;
-  address: string;
+  fullName?: string;
+  address?: string;
+  street?: string;
   address2?: string;
   city: string;
-  state: string;
+  state?: string;
   postalCode: string;
   country: string;
   phone?: string;
@@ -42,10 +43,10 @@ interface User {
   phone?: string;
   phoneNumber?: string; // Server returns this field
   isAdmin: boolean;
-  isGuest: boolean;
+  isGuest?: boolean;
   addresses?: UserAddress[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const AdminUserDetailPage = () => {

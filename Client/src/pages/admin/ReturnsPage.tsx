@@ -1,44 +1,35 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import React, { useEffect, useState } from "react";
 import {
   FaArrowLeft,
   FaCheck,
-  FaTimes,
   FaExchangeAlt,
   FaEye,
-  FaFilter,
-  FaImage,
   FaFileAlt,
+  FaFilter,
+  FaTimes,
 } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
-import { getAllReturns, updateReturnStatus } from "../../services/orderService";
 import {
-  isAuthenticated,
   getCurrentUser,
+  isAuthenticated,
   logout,
 } from "../../services/authService";
-import { format } from "date-fns";
+import {
+  getAllReturns,
+  ReturnRequest,
+  updateReturnStatus,
+} from "../../services/orderService";
 
-// Types for actual return data from API
-interface ReturnApiData {
-  returnId: string;
-  orderId: string;
-  orderDate: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  productName: string;
-  quantity: number;
-  reason: string;
-  otherReason?: string;
-  status: string;
+// Use ReturnRequest from orderService, but alias it for local use
+type ReturnApiData = ReturnRequest & {
+  returnId?: string;
+  orderDate?: string;
+  productName?: string;
+  quantity?: number;
   comments?: string;
-  photos?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+};
 
 const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -98,8 +89,10 @@ const ReturnsPage: React.FC = () => {
     comments?: string
   ) => {
     try {
-      // Extract orderId from the selected return
-      const selectedReturnData = returns.find((r) => r.returnId === returnId);
+      // Extract orderId from the selected return (use returnId or _id)
+      const selectedReturnData = returns.find(
+        (r) => (r.returnId || r._id) === returnId
+      );
 
       if (!selectedReturnData) {
         throw new Error("Return not found");
@@ -112,7 +105,7 @@ const ReturnsPage: React.FC = () => {
       // Update the local state
       setReturns((prevReturns) =>
         prevReturns.map((returnData) =>
-          returnData.returnId === returnId
+          (returnData.returnId || returnData._id) === returnId
             ? {
                 ...returnData,
                 status: newStatus,
@@ -351,7 +344,9 @@ const ReturnsPage: React.FC = () => {
                       </p>
                       <p className="mb-1">
                         <strong>Order Date:</strong>{" "}
-                        {formatDate(returnData.orderDate)}
+                        {returnData.orderDate
+                          ? formatDate(returnData.orderDate)
+                          : "N/A"}
                       </p>
                       <p className="mb-1">
                         <strong>Product:</strong> {returnData.productName}
@@ -363,7 +358,10 @@ const ReturnsPage: React.FC = () => {
                         <strong>Reason:</strong>{" "}
                         {returnData.reason === "other" && returnData.otherReason
                           ? returnData.otherReason
-                          : returnData.reason.replace(/_/g, " ")}
+                          : (returnData.reason || "Not specified").replace(
+                              /_/g,
+                              " "
+                            )}
                       </p>
                       <p className="mb-1">
                         <strong>Status:</strong>{" "}
@@ -488,7 +486,7 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturn.returnId,
+                    selectedReturn.returnId || selectedReturn._id,
                     "approved",
                     commentsElement?.value
                   );
@@ -508,7 +506,7 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturn.returnId,
+                    selectedReturn.returnId || selectedReturn._id,
                     "completed",
                     commentsElement?.value
                   );
@@ -528,7 +526,7 @@ const ReturnsPage: React.FC = () => {
                     "comments"
                   ) as HTMLTextAreaElement;
                   handleStatusUpdate(
-                    selectedReturn.returnId,
+                    selectedReturn.returnId || selectedReturn._id,
                     "rejected",
                     commentsElement?.value
                   );

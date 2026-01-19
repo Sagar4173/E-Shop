@@ -1,34 +1,30 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
 import {
-  FaUser,
-  FaClipboardList,
   FaAddressCard,
-  FaSignOutAlt,
-  FaTrash,
-  FaHeart,
-  FaShoppingCart,
-  FaRegHeart,
-  FaExchangeAlt,
-  FaSortAmountDown,
-  FaSortAmountUp,
-  FaFilter,
-  FaChevronDown,
   FaCheck,
+  FaChevronDown,
+  FaClipboardList,
+  FaHeart,
+  FaRegHeart,
+  FaShoppingCart,
+  FaSignOutAlt,
+  FaSortAmountDown,
+  FaTrash,
+  FaUser,
 } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
+import { CartContext } from "../../context/CartContext";
 import {
-  isAuthenticated,
   getCurrentUser,
-  logout,
   getUserProfile,
+  isAuthenticated,
+  logout,
 } from "../../services/authService";
 import {
   getWishlistItems,
   removeFromWishlist,
 } from "../../services/wishlistService";
-import { CartContext } from "../../context/CartContext";
-import { useContext } from "react";
 import { Product } from "../../types";
 
 // Define types for sorting and filtering
@@ -83,7 +79,7 @@ const WishlistPage = () => {
 
         // Fetch wishlist items
         if (userData && userData._id) {
-          const items = await getWishlistItems(userData._id);
+          const items = await getWishlistItems();
           setWishlistItems(items || []);
           setDisplayedItems(items || []);
         }
@@ -218,7 +214,7 @@ const WishlistPage = () => {
 
     try {
       const removePromises = wishlistItems.map((item) =>
-        removeFromWishlist(item._id),
+        removeFromWishlist(item._id)
       );
 
       await Promise.all(removePromises);

@@ -2,22 +2,18 @@
   "name": "e-commerce-platform",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "Client",
-    "Server"
-  ],
   "scripts": {
     "dev:client": "cd Client && npm run dev",
     "dev:server": "cd Server && npm run dev",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "vercel-build": "bash vercel-build.sh",
-    "build": "bash vercel-build.sh",
-    "start": "cd Server && npm run start"
+    "build": "cd Client && npm run build",
+    "start": "cd Server && npm start",
+    "install:all": "npm install && cd Client && npm install && cd ../Server && npm install"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=18.x"
   },
-  "dependencies": {
-    "concurrently": "^8.2.2"
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

@@ -1,11 +1,11 @@
-import React, { useState, FormEvent, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FaLock, FaKey, FaArrowLeft } from "react-icons/fa";
+import React, { FormEvent, useEffect, useState } from "react";
+import { FaArrowLeft, FaKey, FaLock } from "react-icons/fa";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import {
-  verifyOTP,
-  resetPassword,
   requestPasswordReset,
+  resetPassword,
+  verifyOTP,
 } from "../../services/authService";
 
 const ResetPasswordPage: React.FC = () => {
@@ -62,16 +62,14 @@ const ResetPasswordPage: React.FC = () => {
       // Use the proper auth service instead of direct fetch with hardcoded URL
       const response = await requestPasswordReset(formData.email);
 
-      if (response.success) {
+      // If we get a response with message, treat it as success
+      if (response.message) {
         setSuccessMessage(
           "New verification code sent! Please check your email."
         );
         setResendCooldown(60); // Set 60 seconds cooldown
       } else {
-        setError(
-          response.message ||
-            "Failed to resend verification code. Please try again."
-        );
+        setError("Failed to resend verification code. Please try again.");
       }
     } catch (err) {
       console.error("Error resending OTP:", err);

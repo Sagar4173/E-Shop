@@ -1,35 +1,31 @@
-import { useState, useEffect, FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { FormEvent, useEffect, useState } from "react";
 import {
-  FaUser,
-  FaClipboardList,
   FaAddressCard,
-  FaSignOutAlt,
-  FaShieldAlt,
-  FaUserShield,
-  FaHistory,
-  FaLock,
-  FaTachometerAlt,
-  FaCalendarAlt,
-  FaClock,
   FaBell,
-  FaShoppingBag,
+  FaCalendarAlt,
   FaChartLine,
+  FaClipboardList,
+  FaClock,
+  FaLock,
   FaMapMarkerAlt,
-  FaPlus,
-  FaTrash,
-  FaPen,
+  FaShieldAlt,
+  FaShoppingBag,
+  FaSignOutAlt,
   FaStar,
+  FaTachometerAlt,
+  FaUser,
+  FaUserShield,
 } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import {
-  isAuthenticated,
   getCurrentUser,
+  getUserProfile,
+  isAuthenticated,
   logout,
   updateUserProfile,
-  getUserProfile,
 } from "../../services/authService";
-import { format } from "date-fns";
 import { getUserOrders } from "../../services/orderService";
 import { getWishlistItems } from "../../services/wishlistService";
 
@@ -48,15 +44,25 @@ interface User {
     sms: boolean;
   };
   addresses?: Address[];
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
 }
 
 interface Address {
-  id: string;
-  type: string;
-  isDefault: boolean;
-  street: string;
+  id?: string;
+  _id?: string;
+  type?: string;
+  isDefault?: boolean;
+  street?: string;
+  address?: string;
+  fullName?: string;
   city: string;
-  state: string;
+  state?: string;
   postalCode: string;
   country: string;
 }
@@ -214,7 +220,7 @@ const ProfilePage = () => {
 
         // Fetch wishlist items
         try {
-          const fetchedWishlistItems = await getWishlistItems(userData._id);
+          const fetchedWishlistItems = await getWishlistItems();
           setWishlistItems(fetchedWishlistItems);
         } catch (wishlistErr) {
           console.error("Failed to fetch wishlist:", wishlistErr);
@@ -722,8 +728,8 @@ const ProfilePage = () => {
                                           order.status === "delivered"
                                             ? "bg-green-100 text-green-800"
                                             : order.status === "shipped"
-                                            ? "bg-blue-100 text-blue-800"
-                                            : "bg-yellow-100 text-yellow-800"
+                                              ? "bg-blue-100 text-blue-800"
+                                              : "bg-yellow-100 text-yellow-800"
                                         }`}
                                       >
                                         {order.status.charAt(0).toUpperCase() +

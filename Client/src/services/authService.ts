@@ -1,5 +1,5 @@
-import api from "./api";
 import { User as BaseUser } from "../types";
+import api from "./api";
 
 interface RegisterData {
   name: string;
@@ -33,7 +33,7 @@ interface User extends BaseUser {
 
 // Register a new user
 export const register = async (
-  userData: RegisterData,
+  userData: RegisterData
 ): Promise<User & { token: string }> => {
   const response = await api.post("/users/register", userData);
   if (response.data.token) {
@@ -56,7 +56,7 @@ export const register = async (
           push: false,
           sms: false,
         },
-      }),
+      })
     );
 
     // Dispatch storage event to notify other components about the registration
@@ -68,7 +68,7 @@ export const register = async (
 // Login a user
 export const login = async (
   credentials: LoginData,
-  rememberMe: boolean = false,
+  rememberMe: boolean = false
 ): Promise<User & { token: string }> => {
   const response = await api.post("/users/login", credentials);
   if (response.data.token) {
@@ -96,7 +96,7 @@ export const login = async (
           push: false,
           sms: false,
         },
-      }),
+      })
     );
 
     // Dispatch storage event to notify other components about the login
@@ -173,7 +173,7 @@ export const getUserProfile = async (): Promise<User> => {
 
 // Update user profile
 export const updateUserProfile = async (
-  userData: Partial<User>,
+  userData: Partial<User>
 ): Promise<User> => {
   const response = await api.put("/users/profile", userData);
 
@@ -197,8 +197,8 @@ export const updatePassword = async (passwords: {
 
 // Request password reset email with OTP
 export const requestPasswordReset = async (
-  email: string,
-): Promise<{ message: string }> => {
+  email: string
+): Promise<{ message: string; success?: boolean }> => {
   const response = await api.post("/users/forgot-password", { email });
   return response.data;
 };
@@ -207,7 +207,7 @@ export const requestPasswordReset = async (
 export const verifyOTP = async (
   email: string,
   otp: string,
-  purpose: "password-reset" | "2fa",
+  purpose: "password-reset" | "2fa"
 ): Promise<{ success: boolean; message: string }> => {
   const response = await api.post("/users/verify-otp", {
     email,
@@ -221,7 +221,7 @@ export const verifyOTP = async (
 export const resetPassword = async (
   email: string,
   otp: string,
-  newPassword: string,
+  newPassword: string
 ): Promise<{ message: string }> => {
   const response = await api.post("/users/reset-password", {
     email,
@@ -240,7 +240,7 @@ export const request2FAOTP = async (): Promise<{ message: string }> => {
 // Verify 2FA OTP and complete login
 export const verify2FA = async (
   email: string,
-  otp: string,
+  otp: string
 ): Promise<User & { token: string }> => {
   const response = await api.post("/users/verify-2fa", {
     email,

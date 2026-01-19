@@ -2,10 +2,27 @@
 // Provides clean imports for all page components
 
 // Account pages
-export * from "./account";
+export {
+  OrderDetailPage as AccountOrderDetailPage,
+  OrdersPage as AccountOrdersPage,
+  AddressesPage,
+  ProfilePage,
+  ReturnRequestPage,
+  WishlistPage,
+} from "./account";
 
 // Admin pages
-export * from "./admin";
+export {
+  OrderDetailPage as AdminOrderDetailPage,
+  OrdersPage as AdminOrdersPage,
+  ProductsPage as AdminProductsPage,
+  CouponsPage,
+  DashboardPage,
+  ProductFormPage,
+  ReturnsPage,
+  UserDetailPage,
+  UsersPage,
+} from "./admin";
 
 // Auth pages
 export * from "./auth";
@@ -29,4 +46,4 @@ export * from "./info";
 export * from "./orders";
 
 // Products pages
-export * from "./products";
+export { ProductDetailPage, ProductsPage } from "./products";

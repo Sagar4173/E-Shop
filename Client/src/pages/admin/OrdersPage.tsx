@@ -1,41 +1,35 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import {
-  FaEye,
-  FaEdit,
-  FaSignOutAlt,
-  FaHome,
   FaBoxOpen,
-  FaUsers,
-  FaExchangeAlt,
-  FaShippingFast,
-  FaFileInvoice,
+  FaCheckCircle,
   FaDownload,
   FaEnvelope,
-  FaCheckCircle,
+  FaExchangeAlt,
+  FaEye,
+  FaFileInvoice,
+  FaHome,
+  FaShippingFast,
+  FaSignOutAlt,
   FaSpinner,
+  FaUsers,
 } from "react-icons/fa";
-import Layout from "../../components/layout/Layout";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  isAuthenticated,
   getCurrentUser,
+  isAuthenticated,
   logout,
 } from "../../services/authService";
-import {
-  getAllOrders,
-  updateOrderStatus,
-  Order as OrderType,
-} from "../../services/orderService";
 import {
   sendOrderStatusUpdateEmail,
   sendShippingNotification,
 } from "../../services/emailService";
-import { format } from "date-fns";
 import {
-  downloadInvoice,
-  previewInvoice,
-  emailInvoice,
-} from "../../utils/invoiceGenerator";
+  getAllOrders,
+  Order as OrderType,
+  updateOrderStatus,
+} from "../../services/orderService";
+import { downloadInvoice, emailInvoice } from "../../utils/invoiceGenerator";
 
 const AdminOrdersPage = () => {
   const navigate = useNavigate();
@@ -154,8 +148,8 @@ const AdminOrdersPage = () => {
         // Update the order in the local state
         setOrders(
           orders.map((order) =>
-            order._id === orderId ? { ...order, status: newStatus } : order,
-          ),
+            order._id === orderId ? { ...order, status: newStatus } : order
+          )
         );
       }
     } catch (error) {
@@ -198,8 +192,8 @@ const AdminOrdersPage = () => {
                 status: newStatus,
                 trackingNumber: data.trackingNumber,
               }
-            : order,
-        ),
+            : order
+        )
       );
 
       closeStatusModal();
@@ -245,14 +239,14 @@ const AdminOrdersPage = () => {
           } catch (err) {
             console.error(
               `Error downloading invoice for order ${order._id}:`,
-              err,
+              err
             );
           }
         }
       }
 
       setSuccessMessage(
-        `Successfully downloaded ${selectedOrders.length} invoices`,
+        `Successfully downloaded ${selectedOrders.length} invoices`
       );
       setTimeout(() => setSuccessMessage(""), 3000);
 
@@ -280,7 +274,7 @@ const AdminOrdersPage = () => {
 
         if (order) {
           const success = await emailInvoice(
-            order as unknown as import("../../types").Order,
+            order as unknown as import("../../types").Order
           );
           if (success) {
             successCount++;
@@ -288,8 +282,8 @@ const AdminOrdersPage = () => {
             // Mark order as having invoice sent
             setOrders(
               orders.map((o) =>
-                o._id === orderId ? { ...o, invoiceSent: true } : o,
-              ),
+                o._id === orderId ? { ...o, invoiceSent: true } : o
+              )
             );
           }
           setProgressCount(i + 1);
@@ -297,7 +291,7 @@ const AdminOrdersPage = () => {
       }
 
       setSuccessMessage(
-        `Successfully emailed ${successCount} out of ${selectedOrders.length} invoices`,
+        `Successfully emailed ${successCount} out of ${selectedOrders.length} invoices`
       );
       setTimeout(() => setSuccessMessage(""), 5000);
 
@@ -323,7 +317,7 @@ const AdminOrdersPage = () => {
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filteredOrders.slice(
     indexOfFirstOrder,
-    indexOfLastOrder,
+    indexOfLastOrder
   );
 
   // Calculate total pages
@@ -350,7 +344,7 @@ const AdminOrdersPage = () => {
                 id="order-status-modal"
                 aria-label="Order status"
                 className={`w-full border rounded-md py-2 px-3 ${getStatusClass(
-                  selectedOrder.status,
+                  selectedOrder.status
                 )}`}
                 value={selectedOrder.status}
                 onChange={(e) =>
@@ -710,10 +704,14 @@ const AdminOrdersPage = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
-                                {order.user?.name || "N/A"}
+                                {typeof order.user === "string"
+                                  ? order.user
+                                  : order.user?.name || "N/A"}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {order.user?.email || ""}
+                                {typeof order.user === "object"
+                                  ? order.user?.email || ""
+                                  : ""}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -723,7 +721,7 @@ const AdminOrdersPage = () => {
                               <div className="flex flex-col">
                                 <span
                                   className={`text-sm font-medium px-2 py-1 rounded mb-1 text-center ${getStatusClass(
-                                    order.status,
+                                    order.status
                                   )}`}
                                 >
                                   {order.status.charAt(0).toUpperCase() +
@@ -766,11 +764,11 @@ const AdminOrdersPage = () => {
                                   if (order.isPaid) {
                                     // Cast the order to match the expected type for downloadInvoice
                                     downloadInvoice(
-                                      order as unknown as import("../../types").Order,
+                                      order as unknown as import("../../types").Order
                                     );
                                   } else {
                                     alert(
-                                      "Cannot download invoice for unpaid order",
+                                      "Cannot download invoice for unpaid order"
                                     );
                                   }
                                 }}

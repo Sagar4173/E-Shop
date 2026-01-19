@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
 import {
-  FaShoppingCart,
-  FaUser,
-  FaSearch,
   FaBars,
-  FaTimes,
   FaHeart,
+  FaSearch,
+  FaShoppingCart,
+  FaTimes,
 } from "react-icons/fa";
-import { useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
-import { isAuthenticated, getCurrentUser } from "../../services/authService";
+import { getCurrentUser, isAuthenticated } from "../../services/authService";
 import { getWishlistItems } from "../../services/wishlistService";
 import SearchBar from "../products/SearchBar";
 
@@ -34,7 +32,7 @@ const Header = () => {
         // Fetch wishlist count
         try {
           if (userData && userData._id) {
-            const wishlistItems = await getWishlistItems(userData._id);
+            const wishlistItems = await getWishlistItems();
             setWishlistCount(wishlistItems?.length || 0);
           }
         } catch (error) {
@@ -51,7 +49,7 @@ const Header = () => {
         const userData = getCurrentUser();
         if (userData && userData._id) {
           try {
-            const wishlistItems = await getWishlistItems(userData._id);
+            const wishlistItems = await getWishlistItems();
             setWishlistCount(wishlistItems?.length || 0);
           } catch (error) {
             console.error("Failed to update wishlist count:", error);
@@ -72,7 +70,7 @@ const Header = () => {
     if (isAuthenticated()) {
       const userData = getCurrentUser();
       if (userData && userData._id) {
-        getWishlistItems(userData._id)
+        getWishlistItems()
           .then((items) => setWishlistCount(items?.length || 0))
           .catch((error) =>
             console.error("Failed to refresh wishlist count:", error)

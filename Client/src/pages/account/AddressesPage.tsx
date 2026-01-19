@@ -1,33 +1,33 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
-  FaUser,
-  FaClipboardList,
   FaAddressCard,
-  FaSignOutAlt,
+  FaClipboardList,
   FaMapMarkerAlt,
-  FaPlus,
-  FaTrash,
   FaPen,
+  FaPlus,
+  FaSignOutAlt,
   FaStar,
-  FaHome,
+  FaTrash,
+  FaUser,
 } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import {
-  isAuthenticated,
-  getCurrentUser,
-  logout,
   getUserProfile,
+  isAuthenticated,
+  logout,
 } from "../../services/authService";
-import { format } from "date-fns";
 
 interface Address {
-  id: string;
-  type: string;
-  isDefault: boolean;
-  street: string;
+  id?: string;
+  _id?: string;
+  type?: string;
+  isDefault?: boolean;
+  street?: string;
+  address?: string;
+  fullName?: string;
   city: string;
-  state: string;
+  state?: string;
   postalCode: string;
   country: string;
 }
@@ -173,10 +173,10 @@ const AddressesPage = () => {
 
   const handleEdit = (address: Address) => {
     setFormData({
-      type: address.type,
-      street: address.street,
+      type: address.type || "",
+      street: address.street || address.address || "",
       city: address.city,
-      state: address.state,
+      state: address.state || "",
       postalCode: address.postalCode,
       country: address.country,
     });
@@ -473,7 +473,11 @@ const AddressesPage = () => {
                         <div className="flex space-x-2">
                           {!address.isDefault && (
                             <button
-                              onClick={() => handleSetDefault(address.id)}
+                              onClick={() =>
+                                handleSetDefault(
+                                  address.id || address._id || ""
+                                )
+                              }
                               className="text-sm text-blue-600 hover:text-blue-800"
                               title="Set as default"
                             >
@@ -488,7 +492,9 @@ const AddressesPage = () => {
                             <FaPen size={14} />
                           </button>
                           <button
-                            onClick={() => handleDelete(address.id)}
+                            onClick={() =>
+                              handleDelete(address.id || address._id || "")
+                            }
                             className="text-red-600 hover:text-red-800"
                             title="Delete"
                           >
@@ -507,18 +513,18 @@ const AddressesPage = () => {
                           {address.country === "US"
                             ? "United States"
                             : address.country === "CA"
-                            ? "Canada"
-                            : address.country === "UK"
-                            ? "United Kingdom"
-                            : address.country === "AU"
-                            ? "Australia"
-                            : address.country === "IN"
-                            ? "India"
-                            : address.country === "DE"
-                            ? "Germany"
-                            : address.country === "FR"
-                            ? "France"
-                            : address.country}
+                              ? "Canada"
+                              : address.country === "UK"
+                                ? "United Kingdom"
+                                : address.country === "AU"
+                                  ? "Australia"
+                                  : address.country === "IN"
+                                    ? "India"
+                                    : address.country === "DE"
+                                      ? "Germany"
+                                      : address.country === "FR"
+                                        ? "France"
+                                        : address.country}
                         </div>
                       </div>
                     </div>

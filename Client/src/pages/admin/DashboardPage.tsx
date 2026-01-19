@@ -1,21 +1,18 @@
-import { useState, useEffect, ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { ReactNode, useEffect, useState } from "react";
 import {
-  FaHome,
   FaBoxOpen,
-  FaShoppingCart,
-  FaUsers,
-  FaSignOutAlt,
   FaChartLine,
-  FaTag,
   FaEye,
-  FaEdit,
-  FaTrash,
+  FaShoppingCart,
+  FaSignOutAlt,
+  FaTag,
+  FaUsers,
 } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import {
-  isAuthenticated,
   getCurrentUser,
+  isAuthenticated,
   logout,
 } from "../../services/authService";
 import { getAllOrders } from "../../services/orderService";
@@ -31,9 +28,13 @@ interface DashboardStat {
 interface RecentOrder {
   _id: string;
   createdAt: string;
-  user: {
-    name: string;
-  };
+  user:
+    | string
+    | {
+        _id?: string;
+        name: string;
+        email?: string;
+      };
   totalAmount: number;
   status: string;
 }
@@ -74,7 +75,7 @@ const DashboardPage = () => {
 
         // Process order data for analytics
         const completedOrders = ordersData.filter(
-          (order: any) => order.isPaid && !order.isRefunded,
+          (order: any) => order.isPaid && !order.isRefunded
         );
 
         // Calculate dashboard stats from real data
@@ -90,8 +91,8 @@ const DashboardPage = () => {
           ordersData.map((order: any) =>
             order.user && typeof order.user === "object"
               ? order.user._id
-              : order.user,
-          ),
+              : order.user
+          )
         );
         const customerCount = customerIds.size;
 
@@ -109,7 +110,7 @@ const DashboardPage = () => {
             ? (
                 paidOrders.reduce(
                   (sum: number, order: any) => sum + order.totalAmount,
-                  0,
+                  0
                 ) / paidOrders.length
               ).toFixed(2)
             : "0";
@@ -157,7 +158,7 @@ const DashboardPage = () => {
         // Get recent orders (last 5)
         const sortedOrders = [...ordersData].sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
         setRecentOrders(sortedOrders.slice(0, 5));
@@ -166,7 +167,7 @@ const DashboardPage = () => {
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
         setError(
-          error?.response?.data?.message || "Failed to load dashboard data",
+          error?.response?.data?.message || "Failed to load dashboard data"
         );
         setLoading(false);
       }
@@ -360,7 +361,9 @@ const DashboardPage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {order.user?.name || "Unknown"}
+                            {typeof order.user === "string"
+                              ? order.user
+                              : order.user?.name || "Unknown"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

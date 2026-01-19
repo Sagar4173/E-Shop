@@ -1,45 +1,44 @@
-import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import {
   FaArrowLeft,
+  FaBox,
+  FaCalendarAlt,
+  FaCommentAlt,
+  FaDollarSign,
   FaDownload,
+  FaEdit,
   FaEnvelope,
+  FaExchangeAlt,
   FaEye,
   FaFileInvoice,
-  FaMapMarkerAlt,
-  FaUser,
-  FaShippingFast,
-  FaExchangeAlt,
-  FaEdit,
-  FaCheckCircle,
-  FaTimes,
-  FaCalendarAlt,
   FaHistory,
-  FaCommentAlt,
-  FaBox,
-  FaDollarSign,
-  FaPrint,
+  FaMapMarkerAlt,
   FaPhone,
-  FaTag,
+  FaPrint,
   FaSave,
+  FaShippingFast,
+  FaTag,
+  FaTimes,
+  FaUser,
 } from "react-icons/fa";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import OrderStatusTimeline from "../../components/orders/OrderStatusTimeline";
+import { getCurrentUser, isAuthenticated } from "../../services/authService";
+import { sendOrderStatusUpdateEmail } from "../../services/emailService";
 import {
+  addTrackingNumber,
   getOrderById,
+  getOrderReturns,
   getOrderStatusHistory,
   updateOrderStatus,
-  addTrackingNumber,
-  getOrderReturns,
 } from "../../services/orderService";
+import { Order, StatusHistoryEntry } from "../../types";
 import {
   downloadInvoice,
-  previewInvoice,
   emailInvoice,
+  previewInvoice,
 } from "../../utils/invoiceGenerator";
-import { Order, StatusHistoryEntry } from "../../types";
-import OrderStatusTimeline from "../../components/orders/OrderStatusTimeline";
-import { sendOrderStatusUpdateEmail } from "../../services/emailService";
-import { isAuthenticated, getCurrentUser } from "../../services/authService";
 
 const AdminOrderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,10 +97,10 @@ const AdminOrderDetailPage = () => {
           // Prepare activity log from status history
           const activities = historyData.map((entry) => ({
             type: "status",
-            date: entry.timestamp,
+            date: entry.timestamp || entry.date,
             details: `Status changed to ${entry.status}`,
-            user: entry.user?.name || "System",
-            notes: entry.notes || "",
+            user: entry.user?.name || entry.updatedBy?.name || "System",
+            notes: entry.notes || entry.note || "",
           }));
 
           setActivityLog(activities);
@@ -120,14 +119,15 @@ const AdminOrderDetailPage = () => {
               type: "return",
               date: returnReq.createdAt,
               details: `Return request created - Status: ${returnReq.status}`,
-              items: returnReq.returnItems.length,
+              items:
+                returnReq.returnItems?.length || returnReq.items?.length || 0,
             }));
 
             setActivityLog((prev) =>
               [...prev, ...returnActivities].sort(
                 (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime(),
-              ),
+                  new Date(b.date).getTime() - new Date(a.date).getTime()
+              )
             );
           }
         } catch (err) {
@@ -369,7 +369,7 @@ const AdminOrderDetailPage = () => {
                 id="order-status-select"
                 aria-label="Order status"
                 className={`w-full border rounded-md py-2 px-3 ${getStatusClass(
-                  newStatus,
+                  newStatus
                 )}`}
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
@@ -451,7 +451,7 @@ const AdminOrderDetailPage = () => {
               </h1>
               <span
                 className={`text-sm font-medium px-3 py-1 rounded-full ${getStatusClass(
-                  order.status,
+                  order.status
                 )}`}
               >
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -1089,7 +1089,7 @@ const AdminOrderDetailPage = () => {
                             <div className="text-gray-600">Update Time:</div>
                             <div>
                               {new Date(
-                                order.paymentResult.update_time,
+                                order.paymentResult.update_time
                               ).toLocaleString()}
                             </div>
                           </>

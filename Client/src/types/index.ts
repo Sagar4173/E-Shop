@@ -46,6 +46,14 @@ export interface User {
   phone?: string; // Alias for phoneNumber (for consistency)
   phoneNumber?: string; // Server uses this field name
   isGuest?: boolean;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  addresses?: ShippingAddress[];
 }
 
 export interface UserProfile extends User {
@@ -81,11 +89,19 @@ export interface ShippingAddress {
 export interface StatusHistoryEntry {
   status: string;
   date: string; // Changed from timestamp to date to match backend
+  timestamp?: string; // Legacy field for backward compatibility
   note?: string;
+  notes?: string; // Legacy alias for note
   updatedBy?: {
     // Changed from user to updatedBy with more detailed structure
     _id: string;
     name: string;
+    email?: string;
+  };
+  user?: {
+    // Legacy field for backward compatibility
+    _id?: string;
+    name?: string;
     email?: string;
   };
 }
@@ -108,9 +124,9 @@ export interface Order {
   billingAddress?: ShippingAddress;
   paymentMethod: string;
   paymentResult?: {
-    id: string;
-    status: string;
-    update_time: string;
+    id?: string;
+    status?: string;
+    update_time?: string;
     email_address: string;
   };
   subtotal: number;

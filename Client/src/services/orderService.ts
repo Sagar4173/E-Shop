@@ -1,5 +1,5 @@
+import type { Order as BaseOrder, StatusHistoryEntry } from "../types";
 import api from "./api";
-import type { StatusHistoryEntry, Order as BaseOrder } from "../types";
 
 export type { StatusHistoryEntry };
 
@@ -84,7 +84,7 @@ export const getMyOrders = async (): Promise<Order[]> => {
 
 // Create a new order
 export const createOrder = async (
-  orderData: CreateOrderData,
+  orderData: CreateOrderData
 ): Promise<Order> => {
   const endpoint = orderData.isGuestCheckout ? "/orders/guest" : "/orders";
   const response = await api.post(endpoint, orderData);
@@ -93,7 +93,7 @@ export const createOrder = async (
 
 // Create a guest order
 export const createGuestOrder = async (
-  orderData: CreateOrderData,
+  orderData: CreateOrderData
 ): Promise<Order> => {
   const response = await api.post("/orders/guest", orderData);
   return response.data;
@@ -110,7 +110,7 @@ interface PaymentResult {
 // Update order to paid status
 export const updateOrderToPaid = async (
   id: string,
-  paymentResult: PaymentResult,
+  paymentResult: PaymentResult
 ): Promise<Order> => {
   const response = await api.put(`/orders/${id}/pay`, paymentResult);
   return response.data;
@@ -127,7 +127,7 @@ interface OrderStatusUpdateData {
 export const updateOrderStatus = async (
   id: string,
   status: string,
-  additionalData: OrderStatusUpdateData = {},
+  additionalData: OrderStatusUpdateData = {}
 ): Promise<Order> => {
   const response = await api.put(`/orders/${id}/status`, {
     status,
@@ -139,7 +139,7 @@ export const updateOrderStatus = async (
 // Admin: Add tracking number to an order
 export const addTrackingNumber = async (
   id: string,
-  trackingNumber: string,
+  trackingNumber: string
 ): Promise<Order> => {
   const response = await api.put(`/orders/${id}/tracking`, {
     trackingNumber,
@@ -149,7 +149,7 @@ export const addTrackingNumber = async (
 
 // Get order status history
 export const getOrderStatusHistory = async (
-  id: string,
+  id: string
 ): Promise<StatusHistoryEntry[]> => {
   const response = await api.get(`/orders/${id}/status-history`);
   return response.data;
@@ -162,19 +162,25 @@ export const updateOrderToDelivered = async (id: string): Promise<Order> => {
 };
 
 // Return request response interface
-interface ReturnRequestResponse {
+export interface ReturnRequestResponse {
   success: boolean;
   returnRequest: {
     _id: string;
     status: string;
     createdAt: string;
   };
+  returnItems?: Array<{
+    _id: string;
+    orderItem: string;
+    quantity: number;
+    reason: string;
+  }>;
 }
 
 // Create a return request for an order
 export const createReturnRequest = async (
   orderId: string,
-  returnData: ReturnRequestData,
+  returnData: ReturnRequestData
 ): Promise<ReturnRequestResponse> => {
   const response = await api.post(`/orders/${orderId}/return`, returnData);
   return response.data;
@@ -190,7 +196,7 @@ interface UploadResponse {
 export const uploadReturnPhotos = async (
   orderId: string,
   returnItemId: string,
-  photoFiles: File[],
+  photoFiles: File[]
 ): Promise<UploadResponse> => {
   const formData = new FormData();
 
@@ -207,7 +213,7 @@ export const uploadReturnPhotos = async (
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    },
+    }
   );
 
   return response.data;
@@ -218,7 +224,7 @@ export const updateReturnStatus = async (
   orderId: string,
   returnId: string,
   status: string,
-  adminNotes?: string,
+  adminNotes?: string
 ): Promise<{ success: boolean; message: string }> => {
   const response = await api.put(`/orders/${orderId}/return/${returnId}`, {
     status,
@@ -228,12 +234,39 @@ export const updateReturnStatus = async (
 };
 
 // Return interface for admin view
-interface ReturnRequest {
+export interface ReturnRequest {
   _id: string;
+  returnId?: string;
   orderId: string;
+  orderDate?: string;
   status: string;
   createdAt: string;
-  items: ReturnItem[];
+  updatedAt?: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  items?: ReturnItem[];
+  returnItems?: Array<{
+    _id?: string;
+    orderItem: string;
+    name?: string;
+    productName?: string;
+    quantity: number;
+    reason: string;
+    otherReason?: string;
+    photos?: string[];
+  }>;
+  productName?: string;
+  quantity?: number;
+  reason?: string;
+  otherReason?: string;
+  comments?: string;
+  photos?: string[];
+  refundMethod?: RefundMethod;
+  additionalNotes?: string;
+  isInternational?: boolean;
 }
 
 // Admin: Get all return requests

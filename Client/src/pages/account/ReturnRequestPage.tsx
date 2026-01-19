@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import Layout from "../../components/layout/Layout";
-import {
-  getOrderById,
-  createReturnRequest,
-  uploadReturnPhotos,
-} from "../../services/orderService";
+import React, { useEffect, useState } from "react";
 import {
   FaArrowLeft,
-  FaExclamationCircle,
   FaCheckCircle,
-  FaInfoCircle,
-  FaUpload,
-  FaTrash,
-  FaMoneyBillWave,
   FaExchangeAlt,
+  FaExclamationCircle,
+  FaInfoCircle,
+  FaMoneyBillWave,
+  FaTrash,
+  FaUpload,
 } from "react-icons/fa";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import Layout from "../../components/layout/Layout";
+import {
+  createReturnRequest,
+  getOrderById,
+  uploadReturnPhotos,
+} from "../../services/orderService";
 import { Order } from "../../types";
 
 // Interface for return item selection
@@ -252,12 +252,13 @@ const ReturnRequestPage: React.FC = () => {
       const response = await createReturnRequest(id, returnData);
 
       // Upload photos for each item that has them
+      const responseReturnItems = response.returnItems || [];
       const uploadPromises = selectedItems
         .filter((item) => item.photos.length > 0)
         .map(async (item) => {
           // Find the corresponding return item ID from the response
-          const returnItemData = response.returnItems.find(
-            (ri: any) => ri.orderItem === item.orderItemId
+          const returnItemData = responseReturnItems.find(
+            (ri) => ri.orderItem === item.orderItemId
           );
 
           if (returnItemData && returnItemData._id) {
@@ -638,8 +639,8 @@ const ReturnRequestPage: React.FC = () => {
                                   {returnItem.reason === "damaged"
                                     ? "Upload photos of damage"
                                     : returnItem.reason === "defective"
-                                    ? "Upload photos showing defect"
-                                    : "Upload photos for verification"}
+                                      ? "Upload photos showing defect"
+                                      : "Upload photos for verification"}
                                   :
                                 </label>
                                 <div className="mt-1 flex items-center">

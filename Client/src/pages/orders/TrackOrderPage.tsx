@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  FaSearch,
   FaBox,
-  FaTruck,
   FaCheckCircle,
-  FaTimesCircle,
-  FaSpinner,
   FaClock,
+  FaSearch,
+  FaSpinner,
+  FaTimesCircle,
+  FaTruck,
 } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
 import { Order } from "../../types";
 
@@ -16,7 +16,8 @@ interface TrackingOrder {
   _id: string;
   orderItems: Order["orderItems"];
   shippingAddress: {
-    address: string;
+    street?: string;
+    address?: string;
     city: string;
     postalCode: string;
     country: string;
@@ -68,7 +69,7 @@ const TrackOrderPage: React.FC = () => {
       const error = err as { response?: { data?: { message?: string } } };
       setError(
         error.response?.data?.message ||
-          "Unable to find order. Please check your details and try again.",
+          "Unable to find order. Please check your details and try again."
       );
     } finally {
       setLoading(false);
