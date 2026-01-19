@@ -32,8 +32,8 @@ npm install esbuild@0.18.20 --save-exact --workspaces=false
 # Build with environment variables to skip native modules
 echo "Building client..."
 unset NPM_CONFIG_WORKSPACES
-# Use the local typescript installation
-./node_modules/.bin/tsc && ROLLUP_NATIVE=0 npx vite build --mode production
+# Vite build includes TypeScript compilation
+ROLLUP_NATIVE=0 npx vite build --mode production
 
 echo "Client build completed successfully!"
 
