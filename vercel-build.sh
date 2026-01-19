@@ -32,7 +32,7 @@ npm install esbuild@0.18.20 --save-exact --workspaces=false
 # Build with environment variables to skip native modules
 echo "Building client..."
 unset NPM_CONFIG_WORKSPACES
-ROLLUP_NATIVE=0 npm run build
+ROLLUP_NATIVE=0 npx tsc && npx vite build --mode production
 
 echo "Client build completed successfully!"
 
