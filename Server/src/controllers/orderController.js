@@ -36,21 +36,17 @@ exports.createOrder = async (req, res) => {
               ...item,
               imageUrl: product.imageUrl,
             };
-            console.log(
-              `Added missing imageUrl for product ${item.name} from database`,
-            );
           } else {
             // Use a default image if product not found or has no image
             processedOrderItems[i] = {
               ...item,
               imageUrl: "https://via.placeholder.com/150",
             };
-            console.log(`Using placeholder imageUrl for product ${item.name}`);
           }
         } catch (error) {
           console.error(
             `Error fetching product image for ${item.name}:`,
-            error,
+            error
           );
           // Use placeholder image as fallback
           processedOrderItems[i] = {
@@ -101,7 +97,6 @@ exports.createOrder = async (req, res) => {
           if (order.status === "pending") {
             order.status = "processing";
           }
-          console.log(`Test order marked as paid without Stripe verification`);
         } else {
           // For important payments, we should verify with Stripe directly
           try {
@@ -120,12 +115,9 @@ exports.createOrder = async (req, res) => {
                 if (order.status === "pending") {
                   order.status = "processing";
                 }
-                console.log(
-                  `Order marked as paid after verification with Stripe. Status: ${verification.status}`,
-                );
               } else {
                 console.warn(
-                  `Payment verification failed: ${verification.message}`,
+                  `Payment verification failed: ${verification.message}`
                 );
                 order.isPaid = false;
               }
@@ -136,21 +128,17 @@ exports.createOrder = async (req, res) => {
               if (order.status === "pending") {
                 order.status = "processing";
               }
-              console.log(
-                `Order marked as paid with payment status: ${paymentResult.status} (no verification)`,
-              );
             }
           } catch (verificationError) {
             console.error(
               "Error during payment verification:",
-              verificationError,
+              verificationError
             );
             // Default to not paid if verification fails
             order.isPaid = false;
           }
         }
       } else {
-        console.log(`Payment not completed. Status: ${paymentResult.status}`);
         // Ensure order is explicitly marked as not paid
         order.isPaid = false;
       }
@@ -164,7 +152,7 @@ exports.createOrder = async (req, res) => {
         // Just update the stock field specifically
         await Product.updateOne(
           { _id: product._id },
-          { $set: { stock: product.stock } },
+          { $set: { stock: product.stock } }
         );
       }
     }
@@ -334,7 +322,7 @@ exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate(
       "user",
-      "name email",
+      "name email"
     );
 
     if (order) {
@@ -381,21 +369,12 @@ exports.updateOrderToPaid = async (req, res) => {
       const { verifyPaymentIntent } = require("../utils/paymentValidator");
       if (req.body.id) {
         const paymentId = req.body.id;
-        console.log(
-          `Verifying payment ${paymentId} for order ${req.params.id}`,
-        ); // Check if this is a payment method (pm_) or payment intent (pi_)
+
+        // Check if this is a payment method (pm_) or payment intent (pi_)
         const isPaymentMethod = paymentId.startsWith("pm_");
         // Check for test mode - be consistent with paymentValidator.js
         const isTestMode =
           process.env.NODE_ENV !== "production" || paymentId.includes("_test_");
-
-        if (isPaymentMethod) {
-          console.log(
-            `Payment ID appears to be a payment method ID (${paymentId}) - Test mode: ${
-              isTestMode ? "Yes" : "No"
-            }`,
-          );
-        }
 
         const verification = await verifyPaymentIntent(paymentId);
 
@@ -404,9 +383,6 @@ exports.updateOrderToPaid = async (req, res) => {
 
           // Allow payments to proceed in test mode if using payment method IDs
           if (isTestMode && isPaymentMethod) {
-            console.log(
-              "Test mode: Proceeding with payment method despite verification failure",
-            );
             // Override verification for test mode with payment methods
             verification.isValid = true;
             verification.status = "succeeded_test_override";
@@ -423,10 +399,6 @@ exports.updateOrderToPaid = async (req, res) => {
             });
           }
         }
-
-        console.log(`Payment verified successfully: ${verification.status}`);
-      } else {
-        console.warn("No payment ID provided for verification");
       }
 
       order.isPaid = true;
@@ -464,10 +436,6 @@ exports.updateOrderToPaid = async (req, res) => {
               // Try to get the BASE_URL - use default if not available
               const baseUrl = process.env.BASE_URL || "http://localhost:5000";
 
-              console.log(
-                `Attempting to send invoice email to ${recipientEmail}`,
-              );
-
               // Import axios here to avoid blocking the main thread
               const axios = require("axios");
 
@@ -484,33 +452,12 @@ exports.updateOrderToPaid = async (req, res) => {
                       "Content-Type": "application/json",
                     },
                     timeout: 8000, // 8 second timeout (increased)
-                  },
-                )
-                .then((response) =>
-                  console.log("Invoice email sent:", response.data.success),
+                  }
                 )
                 .catch((err) => {
                   console.error("Failed to send invoice email:", err.message);
-                  // Log more details about the error for debugging
-                  if (err.response) {
-                    console.error(
-                      "Error response:",
-                      err.response.status,
-                      err.response.data,
-                    );
-                  }
                 });
-
-              console.log("Email sending initiated (completely non-blocking)");
-            } else {
-              console.log(
-                "Skipping invoice email - no recipient email available",
-              );
             }
-          } else {
-            console.log(
-              "Skipping invoice email for test mode or zero amount order",
-            );
           }
         } catch (emailError) {
           // Log but don't stop anything if email setup fails
@@ -580,7 +527,7 @@ exports.updateOrderStatus = async (req, res) => {
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
       updateFields,
-      { new: true, runValidators: false }, // Return updated document, skip validation
+      { new: true, runValidators: false } // Return updated document, skip validation
     );
 
     if (updatedOrder) {
@@ -699,7 +646,7 @@ exports.createReturnRequest = async (req, res) => {
     for (const item of returnItems) {
       // Find the order item
       const orderItemIndex = order.orderItems.findIndex(
-        (oi) => oi._id.toString() === item.orderItemId,
+        (oi) => oi._id.toString() === item.orderItemId
       );
 
       if (orderItemIndex === -1) {
@@ -741,7 +688,7 @@ exports.createReturnRequest = async (req, res) => {
       {
         new: true,
         runValidators: false, // Skip validation to avoid shippingAddress.phone issue
-      },
+      }
     );
 
     if (!updatedOrder) {
@@ -806,7 +753,7 @@ exports.updateReturnStatus = async (req, res) => {
         (r) =>
           r._id.toString() !== returnId &&
           r.status !== "completed" &&
-          r.status !== "rejected",
+          r.status !== "rejected"
       );
 
       // If no other pending returns, update hasReturn flag
@@ -823,7 +770,7 @@ exports.updateReturnStatus = async (req, res) => {
         new: true,
         runValidators: false,
         arrayFilters: [{ "item._id": returnId }],
-      },
+      }
     );
 
     if (!updatedOrder) {
@@ -861,7 +808,7 @@ exports.getAllReturns = async (req, res) => {
       order.returns.forEach((returnItem) => {
         // Find the corresponding order item
         const orderItem = order.orderItems.find(
-          (item) => item._id.toString() === returnItem.orderItem.toString(),
+          (item) => item._id.toString() === returnItem.orderItem.toString()
         );
 
         if (orderItem) {
@@ -936,7 +883,7 @@ exports.getOrderReturns = async (req, res) => {
       const returnsData = order.returns.map((returnItem) => {
         // Find the corresponding order item
         const orderItem = order.orderItems.find(
-          (item) => item._id.toString() === returnItem.orderItem.toString(),
+          (item) => item._id.toString() === returnItem.orderItem.toString()
         );
 
         return {
@@ -985,7 +932,7 @@ exports.getOrderStatusHistory = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate(
       "statusHistory.updatedBy",
-      "name email",
+      "name email"
     );
 
     if (!order) {
@@ -1037,7 +984,7 @@ exports.getOrderStatusHistory = async (req, res) => {
 
     // Sort by date, newest first
     const sortedHistory = [...statusHistory].sort(
-      (a, b) => new Date(b.date) - new Date(a.date),
+      (a, b) => new Date(b.date) - new Date(a.date)
     );
 
     res.json(sortedHistory);

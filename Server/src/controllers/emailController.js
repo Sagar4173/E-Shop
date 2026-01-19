@@ -45,10 +45,10 @@ const emailTemplates = {
                   item.quantity
                 }</td>
                 <td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">₹${item.price.toFixed(
-                  2,
+                  2
                 )}</td>
               </tr>
-            `,
+            `
               )
               .join("")}
           </table>
@@ -58,7 +58,7 @@ const emailTemplates = {
               <tr>
                 <td style="text-align: right;">Subtotal:</td>
                 <td style="text-align: right; width: 100px;">₹${order.subtotal.toFixed(
-                  2,
+                  2
                 )}</td>
               </tr>
               <tr>
@@ -72,13 +72,13 @@ const emailTemplates = {
               <tr>
                 <td style="text-align: right;">Tax:</td>
                 <td style="text-align: right;">₹${order.taxAmount.toFixed(
-                  2,
+                  2
                 )}</td>
               </tr>
               <tr style="font-weight: bold;">
                 <td style="text-align: right;">Total:</td>
                 <td style="text-align: right;">₹${order.totalAmount.toFixed(
-                  2,
+                  2
                 )}</td>
               </tr>
             </table>
@@ -429,7 +429,7 @@ const sendEmail = async (to, subject, htmlContent) => {
       !process.env.EMAIL_PASS
     ) {
       console.error(
-        "Email configuration incomplete. Check environment variables.",
+        "Email configuration incomplete. Check environment variables."
       );
       return {
         success: false,
@@ -443,10 +443,6 @@ const sendEmail = async (to, subject, htmlContent) => {
       process.env.NODE_ENV === "development" &&
       process.env.SKIP_EMAILS === "true"
     ) {
-      console.log("Email sending skipped in development");
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Content: ${htmlContent.substring(0, 100)}...`);
       return { success: true, message: "Email skipped in development" };
     }
 
@@ -460,7 +456,6 @@ const sendEmail = async (to, subject, htmlContent) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent: %s", info.messageId);
     return { success: true, message: "Email sent successfully" };
   } catch (error) {
     console.error("Error sending email:", error.message);
@@ -514,7 +509,7 @@ exports.sendOrderConfirmation = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences",
+      "name email notificationPreferences"
     );
 
     if (!order) {
@@ -536,7 +531,7 @@ exports.sendOrderConfirmation = async (req, res) => {
     const result = await sendEmail(
       recipient,
       `Order Confirmation #${orderId.toString().substring(0, 8).toUpperCase()}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -565,7 +560,7 @@ exports.sendOrderStatusUpdate = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences",
+      "name email notificationPreferences"
     );
 
     if (!order) {
@@ -600,7 +595,7 @@ exports.sendOrderStatusUpdate = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -629,7 +624,7 @@ exports.sendShippingNotification = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences",
+      "name email notificationPreferences"
     );
 
     if (!order) {
@@ -660,7 +655,7 @@ exports.sendShippingNotification = async (req, res) => {
     const emailContent = emailTemplates.shippingNotification(
       order,
       trackingNumber,
-      note,
+      note
     );
     const result = await sendEmail(
       recipientEmail,
@@ -668,7 +663,7 @@ exports.sendShippingNotification = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -697,7 +692,7 @@ exports.sendReturnRequestConfirmation = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences",
+      "name email notificationPreferences"
     );
 
     if (!order) {
@@ -740,7 +735,7 @@ exports.sendReturnRequestConfirmation = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -769,7 +764,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
 
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email notificationPreferences",
+      "name email notificationPreferences"
     );
 
     if (!order) {
@@ -809,7 +804,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
       order,
       returnItem,
       status,
-      comments,
+      comments
     );
     const result = await sendEmail(
       recipientEmail,
@@ -817,7 +812,7 @@ exports.sendReturnStatusUpdate = async (req, res) => {
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -848,7 +843,7 @@ exports.sendWelcomeEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Welcome to E-Commerce Platform!",
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -881,7 +876,7 @@ exports.sendPasswordResetEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Password Reset Request",
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -912,7 +907,7 @@ exports.sendPasswordResetOtpEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Password Reset Verification Code",
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -958,7 +953,7 @@ exports.sendContactFormConfirmation = async (req, res) => {
     const adminResult = await sendEmail(
       process.env.ADMIN_EMAIL || "admin@ecommerce.com",
       `New Contact Form: ${subject}`,
-      adminEmailContent,
+      adminEmailContent
     );
 
     res.json({
@@ -992,7 +987,7 @@ exports.sendLowInventoryAlert = async (req, res) => {
     const result = await sendEmail(
       process.env.ADMIN_EMAIL || "admin@ecommerce.com",
       `Low Inventory Alert: ${productName}`,
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -1023,7 +1018,7 @@ exports.sendVerificationOtpEmail = async (req, res) => {
     const result = await sendEmail(
       email,
       "Verify Your Email Address",
-      emailContent,
+      emailContent
     );
 
     res.json(result);
@@ -1114,13 +1109,13 @@ exports.sendInvoiceEmail = async (req, res) => {
               <tr>
                 <td style="padding: 8px 0; color: #666;">Order Date:</td>
                 <td style="padding: 8px 0; text-align: right;">${new Date(
-                  order.createdAt,
+                  order.createdAt
                 ).toLocaleDateString()}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #666;">Total Amount:</td>
                 <td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${order.totalAmount.toFixed(
-                  2,
+                  2
                 )}</td>
               </tr>
               <tr>
@@ -1176,7 +1171,7 @@ exports.sendInvoiceEmail = async (req, res) => {
           .toString()
           .substring(0, 8)
           .toUpperCase()}`,
-        emailContent,
+        emailContent
       );
 
       res.json(result);

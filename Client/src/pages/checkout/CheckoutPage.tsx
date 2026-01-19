@@ -1,18 +1,18 @@
-import { useState, useEffect, useContext, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import Layout from "../../components/layout/Layout";
-import { CartContext } from "../../context/CartContext";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import CheckoutForm from "../../components/checkout/CheckoutForm";
 import OrderSummary from "../../components/checkout/OrderSummary";
-import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
+import Layout from "../../components/layout/Layout";
+import { CartContext } from "../../context/CartContext";
 import { getCurrentUser } from "../../services/authService";
-import { createOrder, createGuestOrder } from "../../services/orderService";
+import { createGuestOrder, createOrder } from "../../services/orderService";
 import {
-  createPaymentIntent,
-  createGuestPaymentIntent,
-  getStripePublicKey,
   checkPaymentServerHealth,
+  createGuestPaymentIntent,
+  createPaymentIntent,
+  getStripePublicKey,
 } from "../../services/paymentService";
 
 const CheckoutPage = () => {
@@ -44,7 +44,6 @@ const CheckoutPage = () => {
       setPaymentServerAvailable(isAvailable);
 
       if (!isAvailable) {
-        console.log("Payment server is not available, using test mode");
         setIsTestMode(true);
       }
     };
@@ -57,18 +56,12 @@ const CheckoutPage = () => {
     const fetchStripeKey = async () => {
       try {
         const { publishableKey, isTestMode } = await getStripePublicKey();
-        console.log("Stripe config received:", {
-          publishableKey: !!publishableKey,
-          isTestMode,
-        });
         setIsTestMode(isTestMode);
 
         if (publishableKey) {
           setStripePromise(loadStripe(publishableKey));
         }
-      } catch (err) {
-        console.error("Error fetching Stripe publishable key:", err);
-        // Set test mode to true as a fallback
+      } catch {
         setIsTestMode(true);
       }
     };
@@ -107,7 +100,6 @@ const CheckoutPage = () => {
 
       // Skip trying to create a payment intent if server is already known to be down
       if (!paymentServerAvailable && retryAttempt === 0) {
-        console.log("Payment server is unavailable, using test mode");
         setIsTestMode(true);
         setLoading(false);
         return;
@@ -115,12 +107,10 @@ const CheckoutPage = () => {
       try {
         setLoading(true);
         const total = getCartTotal();
-        console.log("Starting checkout with total:", total);
 
         // Skip payment intent creation if total is zero or negative
         if (total <= 0) {
-          console.log("Skipping payment intent creation for zero amount");
-          setIsTestMode(true); // Use test mode for zero-amount orders
+          setIsTestMode(true);
           setLoading(false);
           return;
         }
@@ -128,29 +118,19 @@ const CheckoutPage = () => {
         let paymentData;
 
         try {
-          // First try the authenticated endpoint
-          console.log("Attempting authenticated checkout flow");
           paymentData = await createPaymentIntent(total);
           setIsGuestCheckout(false);
           setClientSecret(paymentData.clientSecret);
           setError(null);
-          console.log("Authenticated checkout successful");
 
           // Reset server availability state since request succeeded
           setPaymentServerAvailable(true);
         } catch (authError: any) {
-          console.log(
-            "Authentication error, trying guest checkout:",
-            authError,
-          );
           // Check if it's a Stripe account error (402 status)
           if (
             authError.response?.status === 402 ||
             authError.message?.includes("402")
           ) {
-            console.warn(
-              "Stripe account issue detected (402), enabling test mode",
-            );
             setPaymentServerAvailable(false);
             setIsTestMode(true);
             setError("Payment processing unavailable. Using test mode.");
@@ -162,11 +142,6 @@ const CheckoutPage = () => {
             authError.message?.includes("timeout") ||
             authError.message?.includes("too long")
           ) {
-            console.warn(
-              "Payment server might be down or slow, attempt " +
-                (retryAttempt + 1),
-            );
-
             // If this is the first retry attempt, try once more
             if (retryAttempt < 1) {
               setRetryAttempt(retryAttempt + 1);
@@ -178,7 +153,7 @@ const CheckoutPage = () => {
               setPaymentServerAvailable(false);
               setIsTestMode(true);
               setError(
-                "Payment system is temporarily unavailable. Using test mode.",
+                "Payment system is temporarily unavailable. Using test mode."
               );
               setLoading(false);
               return;
@@ -190,7 +165,6 @@ const CheckoutPage = () => {
             authError.message?.includes("Not authorized") ||
             authError.message?.includes("token")
           ) {
-            console.log("Switching to guest checkout flow");
             setIsGuestCheckout(true);
 
             // Clear any previous client secret when switching to guest mode
@@ -209,36 +183,21 @@ const CheckoutPage = () => {
         // Handle server errors specially
         if (err.message?.includes("500") || err.message?.includes("server")) {
           setError(
-            "The payment server encountered an error. You can continue in test mode or try again later.",
+            "The payment server encountered an error. You can continue in test mode or try again later."
           );
           setIsTestMode(true);
         } else {
           setError(
-            "Failed to initialize payment system. Please try again or contact support.",
+            "Failed to initialize payment system. Please try again or contact support."
           );
         }
       } finally {
         setLoading(false);
-        console.log("Checkout state after initialization:", {
-          isGuestCheckout,
-          hasClientSecret: !!clientSecret,
-          isTestMode,
-        });
       }
     };
 
     initializePayment();
   }, [cartItems, getCartTotal, navigate, paymentServerAvailable, retryAttempt]);
-
-  // Log state changes to help with debugging
-  useEffect(() => {
-    console.log("Checkout mode changed:", {
-      isGuestCheckout,
-      hasClientSecret: !!clientSecret,
-      isTestMode,
-      isLoading: loading,
-    });
-  }, [isGuestCheckout, clientSecret, isTestMode, loading]);
 
   const appearance = {
     theme: "stripe" as const, // Use const assertion for correct typing
@@ -262,32 +221,20 @@ const CheckoutPage = () => {
     }
 
     if (!paymentServerAvailable) {
-      console.log(
-        "Payment server is unavailable for guest checkout, using test mode",
-      );
       setIsTestMode(true);
       return;
     }
     try {
       setLoading(true);
       const total = getCartTotal();
-      console.log("Creating guest payment intent with info:", {
-        name: guestInfo.name,
-        email: guestInfo.email,
-        total,
-      });
 
-      // Skip payment intent creation if total is zero or negative
       if (total <= 0) {
-        console.log("Skipping guest payment intent creation for zero amount");
-        setIsTestMode(true); // Use test mode for zero-amount orders
+        setIsTestMode(true);
         setLoading(false);
         return;
       }
 
-      // Create guest payment intent with the user info
       const paymentData = await createGuestPaymentIntent(total, guestInfo);
-      console.log("Guest payment intent created successfully");
 
       setClientSecret(paymentData.clientSecret);
       setError(null);
@@ -311,7 +258,7 @@ const CheckoutPage = () => {
         setError("Payment system is temporarily unavailable. Using test mode.");
       } else {
         setError(
-          "Failed to create payment. Please try again or contact support.",
+          "Failed to create payment. Please try again or contact support."
         );
         setIsTestMode(true); // Fallback to test mode
       }
@@ -320,10 +267,8 @@ const CheckoutPage = () => {
     }
   };
 
-  // Handle test mode order completion
   const handleTestModeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Completing order in test mode");
 
     try {
       setLoading(true);
@@ -335,7 +280,7 @@ const CheckoutPage = () => {
 
       // Get shipping address from localStorage or use default
       const shippingAddress = JSON.parse(
-        localStorage.getItem("shippingAddress") || "{}",
+        localStorage.getItem("shippingAddress") || "{}"
       );
 
       // Prepare order data
@@ -421,9 +366,7 @@ const CheckoutPage = () => {
       );
     }
 
-    // If in guest checkout mode and no client secret yet, show the guest info form regardless of test mode
     if (isGuestCheckout && !clientSecret) {
-      console.log("Rendering guest checkout form");
       return (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -480,10 +423,7 @@ const CheckoutPage = () => {
       );
     }
 
-    // If we're in test mode, always show the test mode form
-    // This prevents Stripe errors from blocking checkout
     if (isTestMode) {
-      console.log("Rendering test mode form (test mode enabled)");
       return (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -541,9 +481,7 @@ const CheckoutPage = () => {
       );
     }
 
-    // If we have a client secret and Stripe is initialized, show the Stripe Elements form
     if (clientSecret && stripePromise) {
-      console.log("Rendering Stripe Elements form with client secret");
       return (
         <Elements stripe={stripePromise} options={options}>
           <CheckoutForm
@@ -554,8 +492,6 @@ const CheckoutPage = () => {
       );
     }
 
-    // Default to test mode form if no client secret is available
-    console.log("Rendering test mode form");
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">

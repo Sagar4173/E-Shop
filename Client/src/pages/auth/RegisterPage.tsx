@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaEnvelope, FaLock, FaShieldAlt } from "react-icons/fa";
 import Layout from "../../components/layout/Layout";
 import api from "../../services/api";
-import { sendVerificationOtpEmail } from "../../services/email/emailService";
+import { sendVerificationOtpEmail } from "../../services/emailService";
 
 interface RegisterFormData {
   name: string;

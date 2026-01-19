@@ -38,7 +38,7 @@ import {
 } from "../../utils/invoiceGenerator";
 import { Order, StatusHistoryEntry } from "../../types";
 import OrderStatusTimeline from "../../components/orders/OrderStatusTimeline";
-import { sendOrderStatusUpdateEmail } from "../../services/email/emailService";
+import { sendOrderStatusUpdateEmail } from "../../services/emailService";
 import { isAuthenticated, getCurrentUser } from "../../services/authService";
 
 const AdminOrderDetailPage = () => {

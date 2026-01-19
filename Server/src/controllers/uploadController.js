@@ -5,12 +5,9 @@ const cloudinary = require("cloudinary").v2;
 
 // Configure Cloudinary using CLOUDINARY_URL environment variable
 // This will automatically parse the cloudinary URL format: cloudinary://<api_key>:<api_secret>@<cloud_name>
-if (process.env.CLOUDINARY_URL) {
-  console.log("Configuring Cloudinary using CLOUDINARY_URL");
-  // No explicit configuration needed as cloudinary will automatically use CLOUDINARY_URL
-} else {
+if (!process.env.CLOUDINARY_URL) {
   console.warn(
-    "CLOUDINARY_URL not found, Cloudinary uploads may not work in production",
+    "CLOUDINARY_URL not found, Cloudinary uploads may not work in production"
   );
 }
 
@@ -116,19 +113,16 @@ exports.uploadReturnPhotos = async (req, res) => {
     // Upload each photo
     for (const photo of photos) {
       const filename = `return_${orderId}_${returnItemId}_${Date.now()}${path.extname(
-        photo.name,
+        photo.name
       )}`;
 
       // Upload file and get URL
       const photoUrl = await storageService.uploadFile(
         photo,
         filename,
-        uploadDir,
+        uploadDir
       );
       photoUrls.push(photoUrl);
-
-      // Log upload success
-      console.log(`File uploaded successfully: ${filename}`);
     }
 
     // Update the return item to mark photos as uploaded

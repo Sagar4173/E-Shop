@@ -2,9 +2,8 @@ import { useState, FormEvent, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CartContext } from "../../context/CartContext";
-import { createOrder } from "../../services/orderService";
-import { sendOrderConfirmationEmail } from "../../services/email/emailService";
-import { updateOrderToPaid } from "../../services/orderService";
+import { createOrder, updateOrderToPaid } from "../../services/orderService";
+import { sendOrderConfirmationEmail } from "../../services/emailService";
 import {
   FaCreditCard,
   FaLock,

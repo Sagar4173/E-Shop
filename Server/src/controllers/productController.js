@@ -315,12 +315,11 @@ exports.createProductReview = async (req, res) => {
     if (!product.user) {
       product.user = req.user._id;
       await product.save();
-      console.log(`Added missing user field to product ${product._id}`);
     }
 
     // Check if user already reviewed this product
     const alreadyReviewed = product.reviews.find(
-      (r) => r.user && r.user.toString() === req.user._id.toString(),
+      (r) => r.user && r.user.toString() === req.user._id.toString()
     );
 
     if (alreadyReviewed) {
@@ -377,7 +376,7 @@ exports.getProductReviews = async (req, res) => {
 
     const product = await Product.findById(productId).populate(
       "reviews.user",
-      "name",
+      "name"
     );
 
     if (!product) {
@@ -431,7 +430,7 @@ exports.deleteProductReview = async (req, res) => {
 
     // Remove the review
     const updatedReviews = product.reviews.filter(
-      (r) => r._id.toString() !== reviewId,
+      (r) => r._id.toString() !== reviewId
     );
     product.reviews = updatedReviews;
 

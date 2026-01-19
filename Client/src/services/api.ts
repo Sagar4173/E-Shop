@@ -40,11 +40,9 @@ api.interceptors.request.use(
     if (isTokenStructureValid(token)) {
       config.headers.Authorization = `Bearer ${token}`;
     } else if (token) {
-      // If token exists but is invalid, log it and remove from storage
-      console.warn("Invalid token detected, cleaning up...");
+      // If token exists but is invalid, remove from storage
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
-      // No Authorization header will be sent, causing a proper auth error
     }
 
     // Set extended timeout specifically for payment-related endpoints

@@ -21,7 +21,6 @@ exports.protect = async (req, res, next) => {
         token === "undefined" ||
         token.length < 20
       ) {
-        console.log("Rejected token:", token); // Log problematic token for debugging
         return res
           .status(401)
           .json({ message: "Invalid authentication token format" });

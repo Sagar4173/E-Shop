@@ -29,7 +29,7 @@ import {
 import {
   sendOrderStatusUpdateEmail,
   sendShippingNotification,
-} from "../../services/email/emailService";
+} from "../../services/emailService";
 import { format } from "date-fns";
 import {
   downloadInvoice,

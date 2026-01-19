@@ -2,6 +2,82 @@
 
 A full-featured e-commerce platform with product management, cart functionality, and secure payment processing using Stripe API integration.
 
+## Project Structure
+
+```
+E-Commerce_Platform/
+├── Client/                    # React frontend (Vite + TypeScript)
+│   ├── src/
+│   │   ├── components/        # Reusable UI components
+│   │   │   ├── cart/          # Cart-related components
+│   │   │   ├── checkout/      # Checkout components
+│   │   │   ├── common/        # Shared components (Loading, etc.)
+│   │   │   ├── error/         # Error handling components
+│   │   │   ├── layout/        # Layout components (Header, Footer)
+│   │   │   ├── orders/        # Order-related components
+│   │   │   ├── products/      # Product-related components
+│   │   │   └── index.ts       # Barrel exports
+│   │   ├── config/            # Configuration files
+│   │   │   └── api.config.ts  # API configuration
+│   │   ├── constants/         # Application constants
+│   │   │   ├── index.ts       # Shared constants
+│   │   │   └── routes.ts      # Route path constants
+│   │   ├── context/           # React Context providers
+│   │   │   └── CartContext.tsx
+│   │   ├── hooks/             # Custom React hooks
+│   │   │   ├── useAuth.ts     # Authentication hook
+│   │   │   ├── useCart.ts     # Cart context hook
+│   │   │   ├── useDebounce.ts # Debounce hook
+│   │   │   ├── useLocalStorage.ts # LocalStorage hook
+│   │   │   └── index.ts       # Barrel exports
+│   │   ├── pages/             # Page components
+│   │   │   ├── account/       # User account pages
+│   │   │   ├── admin/         # Admin dashboard pages
+│   │   │   ├── auth/          # Authentication pages
+│   │   │   ├── cart/          # Cart page
+│   │   │   ├── checkout/      # Checkout pages
+│   │   │   ├── error/         # Error pages
+│   │   │   ├── home/          # Home page
+│   │   │   ├── info/          # Static info pages
+│   │   │   ├── orders/        # Order pages
+│   │   │   ├── products/      # Product pages
+│   │   │   └── index.ts       # Barrel exports
+│   │   ├── services/          # API service functions
+│   │   │   └── index.ts       # Barrel exports
+│   │   ├── types/             # TypeScript type definitions
+│   │   └── utils/             # Utility functions
+│   │       ├── formatters.ts  # Formatting utilities
+│   │       ├── validators.ts  # Validation utilities
+│   │       └── invoiceGenerator.ts
+│   └── public/                # Static assets
+├── Server/                    # Express.js backend
+│   ├── src/
+│   │   ├── config/            # Configuration
+│   │   │   ├── database.js    # Database connection
+│   │   │   ├── cors.js        # CORS settings
+│   │   │   └── security.js    # Security middleware
+│   │   ├── controllers/       # Route handlers
+│   │   ├── middlewares/       # Express middlewares
+│   │   ├── models/            # Mongoose models
+│   │   ├── routes/            # API route definitions
+│   │   ├── validators/        # Input validation
+│   │   │   ├── orderValidator.js
+│   │   │   ├── productValidator.js
+│   │   │   └── userValidator.js
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── paymentValidator.js
+│   │   │   └── testCardValidator.js
+│   │   └── index.js           # Server entry point
+│   ├── scripts/               # Utility scripts
+│   │   ├── createAdmin.js     # Admin user creation
+│   │   ├── seeder.js          # Database seeder
+│   │   └── scraper/           # Data scraping utilities
+│   └── uploads/               # File uploads directory
+├── api/                       # Vercel serverless functions
+├── docs/                      # Documentation
+└── vercel.json                # Vercel deployment config
+```
+
 ## Features
 
 - **Product Management**: Browse, search, filter, and sort products by category and price

@@ -27,11 +27,6 @@ async function verifyPaymentIntent(paymentId) {
 
   // Fast path for test mode with payment method ID - handle all payment method IDs in test mode
   if (isPaymentMethod && isTestMode) {
-    console.log(`Test mode detected with payment method ID: ${paymentId}`);
-    console.log(
-      "In test mode, bypassing verification and returning success directly"
-    );
-
     return {
       isValid: true,
       status: "succeeded_test",
@@ -49,9 +44,6 @@ async function verifyPaymentIntent(paymentId) {
     let paymentIntent;
     // If this is a payment method ID, we need to find the associated payment intent first
     if (isPaymentMethod) {
-      console.log(
-        `Received payment method ID (${paymentId}). Attempting to find associated payment intent...`
-      );
       try {
         // First retrieve the payment method to get more details
         const paymentMethod = await stripe.paymentMethods.retrieve(paymentId);
@@ -69,9 +61,6 @@ async function verifyPaymentIntent(paymentId) {
 
         // 2. If no results, try a broader search
         if (paymentIntents.data.length === 0) {
-          console.log(
-            "No payment intents found with direct filter. Trying broader search."
-          );
           paymentIntents = await stripe.paymentIntents.list({
             limit: 30, // Larger limit for broader search
             created: {
@@ -80,17 +69,11 @@ async function verifyPaymentIntent(paymentId) {
             },
           });
         }
-        console.log(
-          `Searching through ${paymentIntents.data.length} recent payment intents for a match with payment method: ${paymentId}`
-        );
 
         // Find the payment intent that used this payment method (with enhanced matching)
         const matchingIntent = paymentIntents.data.find((intent) => {
           // Direct match on payment_method field
           if (intent.payment_method === paymentId) {
-            console.log(
-              `Found direct payment_method match in intent: ${intent.id}`
-            );
             return true;
           }
 
@@ -100,9 +83,6 @@ async function verifyPaymentIntent(paymentId) {
             intent.last_payment_error.payment_method &&
             intent.last_payment_error.payment_method.id === paymentId
           ) {
-            console.log(
-              `Found match in last_payment_error of intent: ${intent.id}`
-            );
             return true;
           }
 
@@ -115,7 +95,6 @@ async function verifyPaymentIntent(paymentId) {
                 (typeof value === "string" && value.includes(paymentId))
             )
           ) {
-            console.log(`Found match in metadata of intent: ${intent.id}`);
             return true;
           }
 
@@ -125,7 +104,6 @@ async function verifyPaymentIntent(paymentId) {
             intent.payment_method &&
             paymentId.split("_")[1] === intent.payment_method.split("_")[1]
           ) {
-            console.log(`Found partial ID match in intent: ${intent.id}`);
             return true;
           }
 
@@ -133,20 +111,12 @@ async function verifyPaymentIntent(paymentId) {
         });
 
         if (matchingIntent) {
-          console.log(`Found matching payment intent: ${matchingIntent.id}`);
           actualPaymentIntentId = matchingIntent.id;
           paymentIntent = matchingIntent;
         } else {
           // If no matching intent found, check if we're in test mode
           // This is a fallback, though we should have already caught test mode earlier
           if (isTestMode) {
-            console.log(
-              `Test mode: No matching payment intent found for payment method: ${paymentId}`
-            );
-            console.log(
-              "In test mode, proceeding with mock successful verification"
-            );
-
             // In test mode, create a mock payment intent to allow the flow to continue
             return {
               isValid: true,
@@ -178,13 +148,6 @@ async function verifyPaymentIntent(paymentId) {
             (process.env.NODE_ENV !== "production" ||
               paymentId.includes("test"))
           ) {
-            console.log(
-              `Test mode (second check): No matching payment intent found for payment method: ${paymentId}`
-            );
-            console.log(
-              "In test mode, proceeding with mock successful verification"
-            );
-
             // In test mode, create a mock payment intent to allow the flow to continue
             return {
               isValid: true,
@@ -210,9 +173,6 @@ async function verifyPaymentIntent(paymentId) {
             };
           }
 
-          console.log(
-            `No matching payment intent found for payment method: ${paymentId}`
-          );
           return {
             isValid: false,
             status: "not_found",
@@ -237,9 +197,6 @@ async function verifyPaymentIntent(paymentId) {
 
         // In test mode, still allow the payment to proceed even if there's an error
         if (isTestMode) {
-          console.log(
-            "Test/Dev mode: Allowing payment to proceed despite error"
-          );
           return {
             isValid: true,
             status: "succeeded",
@@ -268,9 +225,6 @@ async function verifyPaymentIntent(paymentId) {
       } catch (error) {
         // If the payment intent retrieval fails but we're in test mode, mock a success
         if (isTestMode) {
-          console.log(
-            `Test/Dev mode: Failed to retrieve payment intent ${actualPaymentIntentId}, but allowing it`
-          );
           return {
             isValid: true,
             status: "succeeded",
@@ -320,11 +274,6 @@ async function verifyPaymentIntent(paymentId) {
 
         // If we have card details, check if it's a test card
         if (paymentMethod.card && paymentMethod.card.last4) {
-          // For testing purposes, log redacted card info
-          console.log(
-            `Payment with card ending in ${paymentMethod.card.last4}`
-          );
-
           // We can't check the full card number since Stripe only returns the last4,
           // but we can use this to improve test flows in the future
           paymentMethodInfo = {
@@ -338,10 +287,7 @@ async function verifyPaymentIntent(paymentId) {
           };
         }
       } catch (paymentMethodError) {
-        console.warn(
-          "Error retrieving payment method:",
-          paymentMethodError.message
-        );
+        // Error retrieving payment method - non-critical, continue
       }
     }
 
@@ -389,7 +335,6 @@ async function verifyPaymentIntent(paymentId) {
 
     // In test mode, still allow the payment through despite errors
     if (isTestMode) {
-      console.log("Test/Dev mode: Allowing payment despite verification error");
       return {
         isValid: true,
         status: "succeeded",
@@ -407,9 +352,6 @@ async function verifyPaymentIntent(paymentId) {
     if (isPaymentMethod) {
       // For test mode, still allow payment methods even on error
       if (isTestMode) {
-        console.log(
-          `Test mode with payment method error - allowing payment anyway`
-        );
         return {
           isValid: true,
           status: "succeeded_test",
