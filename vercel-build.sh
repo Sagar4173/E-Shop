@@ -26,7 +26,7 @@ export NPM_CONFIG_WORKSPACES=false
 # Clean install with specific Vite version that works better in Vercel
 echo "Installing specific package versions..."
 rm -f package-lock.json
-npm install --no-package-lock --workspaces=false
+npm install --no-package-lock --workspaces=false --include=dev
 npm install esbuild@0.18.20 --save-exact --workspaces=false
 
 # Build with environment variables to skip native modules
