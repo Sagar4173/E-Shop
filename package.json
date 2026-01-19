@@ -15,7 +15,7 @@
     "start": "cd Server && npm run start"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "dependencies": {
     "concurrently": "^8.2.2"
