@@ -8,10 +8,26 @@ interface ProductQueryParams extends Partial<ProductFilters> {
   sort?: string;
 }
 
+// API response type for products endpoint
+interface ProductsResponse {
+  products: Product[];
+  totalProducts: number;
+  page?: number;
+  pages?: number;
+}
+
 // Get all products with optional filtering
-export const getProducts = async (params?: ProductQueryParams): Promise<Product[]> => {
-  const response = await api.get("/products", { params });
-  return response.data;
+export const getProducts = async (
+  params?: ProductQueryParams,
+): Promise<Product[]> => {
+  const response = await api.get<ProductsResponse | Product[]>("/products", {
+    params,
+  });
+  // Handle both response formats: array (legacy) or object with products array
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+  return response.data.products;
 };
 
 // Get a single product by ID
@@ -22,7 +38,7 @@ export const getProductById = async (id: string): Promise<Product> => {
 
 // Get featured products
 export const getFeaturedProducts = async (
-  limit?: number
+  limit?: number,
 ): Promise<Product[]> => {
   const response = await api.get("/products/featured", {
     params: { limit },
@@ -38,7 +54,7 @@ export const getProductCategories = async (): Promise<string[]> => {
 
 // Create a new product (admin only)
 export const createProduct = async (
-  productData: Partial<Product>
+  productData: Partial<Product>,
 ): Promise<Product> => {
   const response = await api.post("/products", productData);
   return response.data;
@@ -47,7 +63,7 @@ export const createProduct = async (
 // Update an existing product (admin only)
 export const updateProduct = async (
   id: string,
-  productData: Partial<Product>
+  productData: Partial<Product>,
 ): Promise<Product> => {
   const response = await api.put(`/products/${id}`, productData);
   return response.data;
@@ -55,7 +71,7 @@ export const updateProduct = async (
 
 // Delete a product (admin only)
 export const deleteProduct = async (
-  id: string
+  id: string,
 ): Promise<{ message: string }> => {
   const response = await api.delete(`/products/${id}`);
   return response.data;
@@ -70,7 +86,7 @@ export const getProductReviews = async (id: string): Promise<Review[]> => {
 // Create product review
 export const createProductReview = async (
   id: string,
-  reviewData: { rating: number; comment: string }
+  reviewData: { rating: number; comment: string },
 ): Promise<{ message: string }> => {
   const response = await api.post(`/products/${id}/reviews`, reviewData);
   return response.data;
@@ -79,10 +95,10 @@ export const createProductReview = async (
 // Delete product review
 export const deleteProductReview = async (
   productId: string,
-  reviewId: string
+  reviewId: string,
 ): Promise<{ message: string }> => {
   const response = await api.delete(
-    `/products/${productId}/reviews/${reviewId}`
+    `/products/${productId}/reviews/${reviewId}`,
   );
   return response.data;
 };

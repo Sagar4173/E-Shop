@@ -1,6 +1,9 @@
 import api from "./api";
 import { PaymentIntent } from "../types";
 
+// Currency to use for all payments - should match server configuration
+const PAYMENT_CURRENCY = "inr";
+
 // Create a Stripe payment intent with the order total
 export const createPaymentIntent = async (
   amount: number,
@@ -9,15 +12,16 @@ export const createPaymentIntent = async (
     // Handle zero amount orders with a special flow
     if (amount <= 0) {
       console.warn("Zero or negative amount detected, using minimum amount");
-      // Use the minimum amount required by Stripe ($1.00 = 100 cents)
+      // Use the minimum amount required by Stripe (₹1.00 = 100 paise)
       amount = 1;
     }
 
     console.log("Initiating payment intent creation for amount:", amount);
     // Only sending amount and currency to avoid payment method configuration conflicts
+    // Using INR to match server default and frontend display
     const response = await api.post("/payments/create-payment-intent", {
       amount,
-      currency: "usd",
+      currency: PAYMENT_CURRENCY,
       isZeroAmountOrder: amount === 1 ? true : undefined,
     });
     console.log("Payment intent created successfully");
@@ -50,9 +54,10 @@ export const createGuestPaymentIntent = async (
 
     console.log("Initiating guest payment intent for amount:", amount);
     // Only sending amount, currency and guestInfo to avoid payment method configuration conflicts
+    // Using consistent currency to match server default and frontend display
     const response = await api.post("/payments/guest-payment-intent", {
       amount,
-      currency: "usd",
+      currency: PAYMENT_CURRENCY,
       guestInfo,
     });
     console.log("Guest payment intent created successfully");

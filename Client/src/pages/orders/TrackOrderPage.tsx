@@ -257,7 +257,8 @@ const TrackOrderPage: React.FC = () => {
                     Shipping Address
                   </h3>
                   <p className="text-gray-600">
-                    {order.shippingAddress.address}
+                    {order.shippingAddress.address ||
+                      order.shippingAddress.street}
                     <br />
                     {order.shippingAddress.city},{" "}
                     {order.shippingAddress.postalCode}

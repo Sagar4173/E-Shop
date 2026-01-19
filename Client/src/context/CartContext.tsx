@@ -50,9 +50,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Generate the appropriate storage key based on user or guest
-  const getCartStorageKey = () => {
+  const getCartStorageKey = React.useCallback(() => {
     return currentUserId ? `cart_${currentUserId}` : "guest_cart";
-  };
+  }, [currentUserId]);
 
   // Load cart from localStorage when component mounts or user changes
   useEffect(() => {
@@ -71,13 +71,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       // If no cart exists for this user/guest, initialize empty cart
       setCartItems([]);
     }
-  }, [currentUserId]);
+  }, [currentUserId, getCartStorageKey]);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     const storageKey = getCartStorageKey();
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
-  }, [cartItems, currentUserId]);
+  }, [cartItems, getCartStorageKey]);
 
   // Transfer guest cart to user cart when logging in
   useEffect(() => {

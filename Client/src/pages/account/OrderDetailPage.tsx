@@ -429,8 +429,13 @@ const OrderDetailPage: React.FC = () => {
                 Address
               </h2>
               <div>
-                <p className="font-medium">{order.shippingAddress.fullName}</p>
-                <p>{order.shippingAddress.address}</p>
+                <p className="font-medium">
+                  {order.shippingAddress.fullName || "Customer"}
+                </p>
+                <p>
+                  {order.shippingAddress.address ||
+                    order.shippingAddress.street}
+                </p>
                 <p>
                   {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
                   {order.shippingAddress.postalCode}

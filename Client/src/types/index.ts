@@ -43,7 +43,8 @@ export interface User {
   isAdmin: boolean;
   createdAt?: string;
   updatedAt?: string;
-  phone?: string;
+  phone?: string; // Alias for phoneNumber (for consistency)
+  phoneNumber?: string; // Server uses this field name
   isGuest?: boolean;
 }
 
@@ -64,15 +65,15 @@ export interface CartItem {
 
 // Order Types
 export interface ShippingAddress {
-  fullName: string;
-  address: string;
-  street?: string; // Alternative to address in some contexts
+  fullName?: string;
+  street: string; // Required by server Order model
+  address?: string; // Optional alias for street, for backward compatibility
   address2?: string; // Optional secondary address line
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  phone?: string;
+  phone?: string; // Optional for guest checkout
   email?: string; // For guest checkouts
 }
 
@@ -116,6 +117,7 @@ export interface Order {
   taxAmount: number;
   shippingAmount: number;
   totalAmount: number;
+  discountAmount?: number;
   isPaid: boolean;
   paidAt?: string;
   status: string;

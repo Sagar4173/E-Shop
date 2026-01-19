@@ -57,7 +57,8 @@ const RegisterPage = () => {
         email: formData.email,
       });
 
-      if (response.data.success) {
+      // Server returns { message: "..." } on success
+      if (response.data.message && !response.data.error) {
         alert("Verification code resent to your email");
       } else {
         setError(response.data.message || "Failed to resend verification code");
@@ -65,7 +66,7 @@ const RegisterPage = () => {
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
-          "Failed to resend verification code. Please try again."
+          "Failed to resend verification code. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -92,7 +93,8 @@ const RegisterPage = () => {
         password: formData.password,
       });
 
-      if (response.data.success) {
+      // Server returns requiresVerification: true on success
+      if (response.data.requiresVerification) {
         // Move to verification step
         setStep("verify");
       } else {
@@ -102,7 +104,7 @@ const RegisterPage = () => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Registration failed. Please try again."
+          "Registration failed. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -122,15 +124,32 @@ const RegisterPage = () => {
         otp: verificationData.otp,
       });
 
-      if (response.data.success) {
-        // Navigate to login page with success message
-        navigate("/login", { state: { registered: true, verified: true } });
+      // Server returns user data with token on successful verification
+      if (response.data.token) {
+        // Store the token and user data
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            _id: response.data._id,
+            name: response.data.name,
+            email: response.data.email,
+            isAdmin: response.data.isAdmin,
+            isVerified: response.data.isVerified,
+          }),
+        );
+
+        // Dispatch storage event to notify other components
+        window.dispatchEvent(new Event("storage"));
+
+        // Navigate to home page (user is now logged in)
+        navigate("/", { state: { registered: true, verified: true } });
       } else {
         setError(response.data.message || "Invalid verification code");
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Verification failed. Please try again."
+        err.response?.data?.message || "Verification failed. Please try again.",
       );
     } finally {
       setLoading(false);

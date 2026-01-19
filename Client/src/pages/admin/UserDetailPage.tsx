@@ -40,6 +40,7 @@ interface User {
   name: string;
   email: string;
   phone?: string;
+  phoneNumber?: string; // Server returns this field
   isAdmin: boolean;
   isGuest: boolean;
   addresses?: UserAddress[];
@@ -405,10 +406,10 @@ const AdminUserDetailPage = () => {
                                 order.status === "delivered"
                                   ? "bg-green-100 text-green-800"
                                   : order.status === "shipped"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : order.status === "cancelled"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : order.status === "cancelled"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-yellow-100 text-yellow-800"
                               }`}
                             >
                               {order.status.charAt(0).toUpperCase() +
@@ -496,16 +497,16 @@ const AdminUserDetailPage = () => {
                   </div>
                 </div>
 
-                {user.phone && (
+                {(user.phone || user.phoneNumber) && (
                   <div className="border-b pb-2">
                     <div className="text-gray-500 text-sm">Phone Number</div>
                     <div className="flex items-center">
                       <FaPhone className="text-gray-400 mr-2" size={14} />
                       <a
-                        href={`tel:${user.phone}`}
+                        href={`tel:${user.phone || user.phoneNumber}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {user.phone}
+                        {user.phone || user.phoneNumber}
                       </a>
                     </div>
                   </div>

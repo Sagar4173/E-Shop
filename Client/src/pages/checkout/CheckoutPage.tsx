@@ -7,6 +7,7 @@ import OrderSummary from "../../components/checkout/OrderSummary";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { getCurrentUser } from "../../services/authService";
+import { createOrder, createGuestOrder } from "../../services/orderService";
 import {
   createPaymentIntent,
   createGuestPaymentIntent,
@@ -320,19 +321,79 @@ const CheckoutPage = () => {
   };
 
   // Handle test mode order completion
-  const handleTestModeSubmit = (e: React.FormEvent) => {
+  const handleTestModeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Completing order in test mode");
 
-    // Set both the ref flag and a more permanent localStorage flag
-    isCompletingCheckout.current = true;
-    localStorage.setItem("checkoutComplete", "true");
+    try {
+      setLoading(true);
 
-    // Clear the cart after successful order
-    clearCart();
+      // Get form data
+      const formData = new FormData(e.target as HTMLFormElement);
+      const name = formData.get("test-name") as string;
+      const email = formData.get("test-email") as string;
 
-    // In test mode, just redirect to order confirmation
-    navigate("/order-confirmation");
+      // Get shipping address from localStorage or use default
+      const shippingAddress = JSON.parse(
+        localStorage.getItem("shippingAddress") || "{}",
+      );
+
+      // Prepare order data
+      const orderData = {
+        orderItems: cartItems.map((item) => ({
+          product: item.id || item._id,
+          name: item.name,
+          imageUrl: item.imageUrl,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        shippingAddress: {
+          fullName: name || user?.name || "Test User",
+          street:
+            shippingAddress.address ||
+            shippingAddress.street ||
+            "123 Test Street",
+          city: shippingAddress.city || "Test City",
+          state: shippingAddress.state || "Test State",
+          postalCode: shippingAddress.postalCode || "12345",
+          country: shippingAddress.country || "US",
+          phone: shippingAddress.phone || "1234567890",
+          email: email || user?.email || "test@example.com",
+        },
+        paymentMethod: "test",
+        subtotal: getCartTotal(),
+        taxAmount: getCartTotal() * 0.18,
+        shippingAmount: 0,
+        totalAmount: getCartTotal() * 1.18,
+        isGuestCheckout: !user,
+        paymentResult: {
+          id: "test_" + Date.now(),
+          status: "completed",
+          update_time: new Date().toISOString(),
+          email_address: email || user?.email || "test@example.com",
+        },
+      };
+
+      // Create the order
+      const newOrder = user
+        ? await createOrder(orderData)
+        : await createGuestOrder(orderData);
+
+      // Set both the ref flag and a more permanent localStorage flag
+      isCompletingCheckout.current = true;
+      localStorage.setItem("checkoutComplete", "true");
+
+      // Clear the cart after successful order
+      clearCart();
+
+      // Redirect to order confirmation with order ID
+      navigate(`/order-confirmation?id=${newOrder._id}`);
+    } catch (error) {
+      console.error("Error creating test order:", error);
+      setError("Failed to create order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle guest info input changes

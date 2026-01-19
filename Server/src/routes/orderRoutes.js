@@ -9,6 +9,9 @@ router.post("/guest", orderController.createOrder);
 // Guest order tracking (by order ID and email)
 router.post("/track", orderController.trackGuestOrder);
 
+// Public invoice access (by order ID and email query params)
+router.get("/invoice/:id", orderController.getPublicInvoice);
+
 // Protected routes
 router.post("/", protect, orderController.createOrder);
 router.get("/myorders", protect, orderController.getMyOrders);

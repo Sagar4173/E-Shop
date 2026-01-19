@@ -1,4 +1,5 @@
 import api from "./api";
+import { User as BaseUser } from "../types";
 
 interface RegisterData {
   name: string;
@@ -11,12 +12,8 @@ interface LoginData {
   password: string;
 }
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  isAdmin: boolean;
-  createdAt?: string;
+// Extended User interface with additional auth-specific fields
+interface User extends BaseUser {
   lastLogin?: string;
   enable2FA?: boolean;
   phoneNumber?: string;
@@ -61,6 +58,9 @@ export const register = async (
         },
       }),
     );
+
+    // Dispatch storage event to notify other components about the registration
+    window.dispatchEvent(new Event("storage"));
   }
   return response.data;
 };

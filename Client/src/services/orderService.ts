@@ -1,33 +1,12 @@
 import api from "./api";
-import type { StatusHistoryEntry } from "../types";
+import type { StatusHistoryEntry, Order as BaseOrder } from "../types";
 
 export type { StatusHistoryEntry };
 
-export interface Order {
-  _id: string;
-  user: any; // Can be string (ID) or full user object
-  orderItems: any[];
-  shippingAddress: any;
-  billingAddress: any;
-  paymentMethod: string;
-  paymentResult: any;
-  shippingAmount: number;
-  taxAmount: number;
-  subtotal: number;
-  totalAmount: number;
-  isPaid: boolean;
-  paidAt: string | null;
-  isDelivered: boolean;
-  deliveredAt: string | null;
-  status: string;
-  trackingNumber?: string;
-  customerNote?: string;
-  adminNotes?: string;
-  shippedAt?: string;
-  createdAt: string;
-  updatedAt: string;
+// Extend the base Order type with service-specific fields
+export interface Order extends BaseOrder {
+  billingAddress?: BaseOrder["shippingAddress"];
   invoiceSent?: boolean;
-  hasReturn?: boolean;
 }
 
 interface OrderItem {
@@ -40,14 +19,15 @@ interface OrderItem {
 
 interface ShippingAddress {
   fullName: string;
-  address: string;
+  street: string; // Server uses 'street' as required field
+  address?: string; // Keep for backward compatibility
   address2?: string;
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  phone?: string;
-  email?: string;
+  phone?: string; // Optional for guest checkout
+  email?: string; // For guest orders
 }
 
 interface CreateOrderData {

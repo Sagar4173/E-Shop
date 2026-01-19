@@ -45,7 +45,7 @@ const OrderConfirmationPage = () => {
         } catch (err) {
           console.error("Failed to fetch order details:", err);
           setError(
-            "Failed to load order details. Please check your order history."
+            "Failed to load order details. Please check your order history.",
           );
         } finally {
           setLoading(false);
@@ -336,8 +336,13 @@ const OrderConfirmationPage = () => {
             <div className="border rounded-lg p-4">
               <h3 className="font-medium mb-2">Shipping Address</h3>
               <div className="text-sm">
-                <p className="mb-1">{order.shippingAddress.fullName}</p>
-                <p className="mb-1">{order.shippingAddress.address}</p>
+                <p className="mb-1">
+                  {order.shippingAddress.fullName || "Customer"}
+                </p>
+                <p className="mb-1">
+                  {order.shippingAddress.address ||
+                    order.shippingAddress.street}
+                </p>
                 <p className="mb-1">
                   {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
                   {order.shippingAddress.postalCode}

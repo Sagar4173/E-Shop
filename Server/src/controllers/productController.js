@@ -16,9 +16,11 @@ exports.getProducts = async (req, res) => {
 
     // Apply keyword search if specified (search in name and description)
     if (keyword) {
+      // Escape special regex characters to prevent ReDoS attacks
+      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       queryFilter.$or = [
-        { name: { $regex: keyword, $options: "i" } },
-        { description: { $regex: keyword, $options: "i" } },
+        { name: { $regex: escapedKeyword, $options: "i" } },
+        { description: { $regex: escapedKeyword, $options: "i" } },
       ];
     }
 
@@ -423,7 +425,7 @@ exports.deleteProductReview = async (req, res) => {
       !req.user.isAdmin
     ) {
       return res
-        .status(401)
+        .status(403)
         .json({ message: "Not authorized to delete this review" });
     }
 

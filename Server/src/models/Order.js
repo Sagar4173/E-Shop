@@ -55,7 +55,7 @@ const returnItemSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const statusHistorySchema = new mongoose.Schema({
@@ -109,12 +109,15 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     shippingAddress: {
+      fullName: { type: String },
       street: { type: String, required: true },
+      address: { type: String }, // Alias for street, for backward compatibility
+      address2: { type: String }, // Optional secondary address line
       city: { type: String, required: true },
       state: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
-      phone: { type: String, required: true },
+      phone: { type: String, required: false }, // Made optional for guest checkout
       email: { type: String }, // Added to store email for guest orders
     },
     paymentMethod: {
@@ -170,8 +173,36 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
     statusHistory: [statusHistorySchema],
+    trackingNumber: {
+      type: String,
+    },
+    shippingMethod: {
+      type: String,
+    },
+    shippedAt: {
+      type: Date,
+    },
+    customerNote: {
+      type: String,
+    },
+    adminNotes: {
+      type: String,
+    },
+    isDelivered: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     deliveredAt: {
       type: Date,
+    },
+    isRefunded: {
+      type: Boolean,
+      default: false,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
     },
     returns: [returnItemSchema],
     hasReturn: {
@@ -179,7 +210,7 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Order", orderSchema);

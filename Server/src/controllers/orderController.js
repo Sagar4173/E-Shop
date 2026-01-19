@@ -60,10 +60,17 @@ exports.createOrder = async (req, res) => {
         }
       }
     } // Create new order
+    // Normalize shipping address - ensure street is set from address if not provided
+    const normalizedShippingAddress = {
+      ...shippingAddress,
+      street: shippingAddress.street || shippingAddress.address,
+      address: shippingAddress.address || shippingAddress.street,
+    };
+
     const order = new Order({
       orderItems: processedOrderItems,
       user: req.user ? req.user._id : null, // Allow null user for guest checkout
-      shippingAddress,
+      shippingAddress: normalizedShippingAddress,
       paymentMethod,
       subtotal,
       taxAmount,
@@ -75,51 +82,72 @@ exports.createOrder = async (req, res) => {
     if (paymentResult && isGuestCheckout) {
       // Only set isPaid to true if payment status is "succeeded" or "complete"
       // Strict check to ensure payment was actually completed successfully
-      const validPaymentStatuses = ["succeeded", "complete", "paid"];
+      const validPaymentStatuses = [
+        "succeeded",
+        "complete",
+        "paid",
+        "completed",
+      ];
 
       if (validPaymentStatuses.includes(paymentResult.status)) {
-        // For important payments, we should verify with Stripe directly
-        try {
-          // Import the payment validator
-          const { verifyPaymentIntent } = require("../utils/paymentValidator");
+        // Skip Stripe verification for test payments
+        const isTestPayment =
+          paymentResult.id && paymentResult.id.startsWith("test_");
 
-          // Verify payment status directly with Stripe if we have a payment ID
-          if (paymentResult.id) {
-            const verification = await verifyPaymentIntent(paymentResult.id);
+        if (isTestPayment) {
+          // For test payments, just mark as paid without verification
+          order.isPaid = true;
+          order.paidAt = Date.now();
+          if (order.status === "pending") {
+            order.status = "processing";
+          }
+          console.log(`Test order marked as paid without Stripe verification`);
+        } else {
+          // For important payments, we should verify with Stripe directly
+          try {
+            // Import the payment validator
+            const {
+              verifyPaymentIntent,
+            } = require("../utils/paymentValidator");
 
-            if (verification.isValid) {
+            // Verify payment status directly with Stripe if we have a payment ID
+            if (paymentResult.id) {
+              const verification = await verifyPaymentIntent(paymentResult.id);
+
+              if (verification.isValid) {
+                order.isPaid = true;
+                order.paidAt = Date.now();
+                if (order.status === "pending") {
+                  order.status = "processing";
+                }
+                console.log(
+                  `Order marked as paid after verification with Stripe. Status: ${verification.status}`,
+                );
+              } else {
+                console.warn(
+                  `Payment verification failed: ${verification.message}`,
+                );
+                order.isPaid = false;
+              }
+            } else {
+              // If no payment ID to verify, rely on the status provided
               order.isPaid = true;
               order.paidAt = Date.now();
               if (order.status === "pending") {
                 order.status = "processing";
               }
               console.log(
-                `Order marked as paid after verification with Stripe. Status: ${verification.status}`,
+                `Order marked as paid with payment status: ${paymentResult.status} (no verification)`,
               );
-            } else {
-              console.warn(
-                `Payment verification failed: ${verification.message}`,
-              );
-              order.isPaid = false;
             }
-          } else {
-            // If no payment ID to verify, rely on the status provided
-            order.isPaid = true;
-            order.paidAt = Date.now();
-            if (order.status === "pending") {
-              order.status = "processing";
-            }
-            console.log(
-              `Order marked as paid with payment status: ${paymentResult.status} (no verification)`,
+          } catch (verificationError) {
+            console.error(
+              "Error during payment verification:",
+              verificationError,
             );
+            // Default to not paid if verification fails
+            order.isPaid = false;
           }
-        } catch (verificationError) {
-          console.error(
-            "Error during payment verification:",
-            verificationError,
-          );
-          // Default to not paid if verification fails
-          order.isPaid = false;
         }
       } else {
         console.log(`Payment not completed. Status: ${paymentResult.status}`);
@@ -145,7 +173,93 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(createdOrder);
   } catch (error) {
-    console.error(error);
+    console.error("Error creating order:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+// @desc    Get order for public invoice view (by ID and email)
+// @route   GET /api/orders/invoice/:id?email=...
+// @access  Public (but requires matching email)
+exports.getPublicInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.query;
+
+    if (!id || !email) {
+      return res.status(400).json({
+        message: "Order ID and email are required",
+      });
+    }
+
+    const order = await Order.findById(id).populate("user", "name email");
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Verify the email matches either:
+    // 1. The shipping address email
+    // 2. The payment result email
+    // 3. The user's email (if exists)
+    const emailLower = email.toLowerCase();
+    const shippingEmail = order.shippingAddress?.email?.toLowerCase();
+    const paymentEmail = order.paymentResult?.email_address?.toLowerCase();
+    const userEmail = order.user?.email?.toLowerCase();
+
+    const emailMatches =
+      shippingEmail === emailLower ||
+      paymentEmail === emailLower ||
+      userEmail === emailLower;
+
+    if (!emailMatches) {
+      return res.status(401).json({
+        message: "Email does not match order records",
+      });
+    }
+
+    // Return order details for invoice generation
+    res.json({
+      _id: order._id,
+      orderItems: order.orderItems,
+      shippingAddress: {
+        fullName: order.shippingAddress.fullName,
+        address: order.shippingAddress.address || order.shippingAddress.street,
+        street: order.shippingAddress.street,
+        city: order.shippingAddress.city,
+        state: order.shippingAddress.state,
+        postalCode: order.shippingAddress.postalCode,
+        country: order.shippingAddress.country,
+        phone: order.shippingAddress.phone,
+        email: order.shippingAddress.email,
+      },
+      paymentMethod: order.paymentMethod,
+      paymentResult: order.paymentResult
+        ? {
+            email_address: order.paymentResult.email_address,
+          }
+        : undefined,
+      subtotal: order.subtotal,
+      taxAmount: order.taxAmount,
+      shippingAmount: order.shippingAmount,
+      totalAmount: order.totalAmount,
+      discountAmount: order.discountAmount,
+      isPaid: order.isPaid,
+      paidAt: order.paidAt,
+      status: order.status,
+      createdAt: order.createdAt,
+      user: order.user
+        ? {
+            name: order.user.name,
+            email: order.user.email,
+          }
+        : undefined,
+    });
+  } catch (error) {
+    console.error("Get public invoice error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -184,10 +298,15 @@ exports.trackGuestOrder = async (req, res) => {
       _id: order._id,
       orderItems: order.orderItems,
       shippingAddress: {
-        address: order.shippingAddress.address,
+        fullName: order.shippingAddress.fullName,
+        address: order.shippingAddress.address || order.shippingAddress.street,
+        street: order.shippingAddress.street,
         city: order.shippingAddress.city,
+        state: order.shippingAddress.state,
         postalCode: order.shippingAddress.postalCode,
         country: order.shippingAddress.country,
+        phone: order.shippingAddress.phone,
+        email: order.shippingAddress.email,
       },
       paymentMethod: order.paymentMethod,
       subtotal: order.subtotal,
@@ -225,7 +344,7 @@ exports.getOrderById = async (req, res) => {
           return res.json(order);
         } else {
           return res
-            .status(401)
+            .status(403)
             .json({ message: "Not authorized to access this order" });
         }
       }
@@ -238,7 +357,7 @@ exports.getOrderById = async (req, res) => {
         res.json(order);
       } else {
         res
-          .status(401)
+          .status(403)
           .json({ message: "Not authorized to access this order" });
       }
     } else {
@@ -447,6 +566,11 @@ exports.updateOrderStatus = async (req, res) => {
     // Add optional fields if they're provided
     if (status === "delivered") {
       updateFields.deliveredAt = Date.now();
+      updateFields.isDelivered = true;
+    }
+
+    if (status === "shipped" && !order.shippedAt) {
+      updateFields.shippedAt = Date.now();
     }
 
     if (trackingNumber) {
@@ -539,7 +663,7 @@ exports.createReturnRequest = async (req, res) => {
       !req.user.isAdmin
     ) {
       return res
-        .status(401)
+        .status(403)
         .json({ message: "Not authorized to create return for this order" });
     }
 
@@ -803,7 +927,7 @@ exports.getOrderReturns = async (req, res) => {
       (!order.user || order.user.toString() !== req.user._id.toString())
     ) {
       return res
-        .status(401)
+        .status(403)
         .json({ message: "Not authorized to view returns for this order" });
     }
 

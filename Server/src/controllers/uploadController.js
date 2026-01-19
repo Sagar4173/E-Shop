@@ -10,7 +10,7 @@ if (process.env.CLOUDINARY_URL) {
   // No explicit configuration needed as cloudinary will automatically use CLOUDINARY_URL
 } else {
   console.warn(
-    "CLOUDINARY_URL not found, Cloudinary uploads may not work in production"
+    "CLOUDINARY_URL not found, Cloudinary uploads may not work in production",
   );
 }
 
@@ -92,7 +92,7 @@ exports.uploadReturnPhotos = async (req, res) => {
       order.user.toString() !== req.user._id.toString() &&
       !req.user.isAdmin
     ) {
-      return res.status(401).json({ message: "Not authorized" });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     // Find the return item
@@ -116,14 +116,14 @@ exports.uploadReturnPhotos = async (req, res) => {
     // Upload each photo
     for (const photo of photos) {
       const filename = `return_${orderId}_${returnItemId}_${Date.now()}${path.extname(
-        photo.name
+        photo.name,
       )}`;
 
       // Upload file and get URL
       const photoUrl = await storageService.uploadFile(
         photo,
         filename,
-        uploadDir
+        uploadDir,
       );
       photoUrls.push(photoUrl);
 

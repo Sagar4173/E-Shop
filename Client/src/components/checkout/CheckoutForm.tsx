@@ -45,7 +45,7 @@ const CheckoutForm = ({
   const [succeeded, setSucceeded] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(
-    null
+    null,
   );
   const [showOrderReview, setShowOrderReview] = useState<boolean>(false);
   const [saveAddress, setSaveAddress] = useState<boolean>(false);
@@ -86,19 +86,24 @@ const CheckoutForm = ({
       return false;
     }
 
-    // Format validation for postal code based on country
+    // Format validation for postal code based on country (ISO 2-letter codes)
     const postalRegexByCountry: Record<string, RegExp> = {
-      IN: /^\d{6}$/, // Changed from "India" to "IN"
-      US: /^\d{5}(-\d{4})?$/,
-      UK: /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/i,
-      CA: /^[A-Z]\d[A-Z] \d[A-Z]\d$/i, // Changed from "Canada" to "CA"
-      AU: /^\d{4}$/, // Changed from "Australia" to "AU"
+      IN: /^\d{6}$/, // India: 6 digits
+      US: /^\d{5}(-\d{4})?$/, // US: 5 digits or 5+4
+      UK: /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i, // UK postal code (space optional)
+      GB: /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i, // GB (alias for UK)
+      CA: /^[A-Z]\d[A-Z] ?\d[A-Z]\d$/i, // Canada: A1A 1A1 format (space optional)
+      AU: /^\d{4}$/, // Australia: 4 digits
+      DE: /^\d{5}$/, // Germany: 5 digits
+      FR: /^\d{5}$/, // France: 5 digits
+      JP: /^\d{3}-?\d{4}$/, // Japan: 123-4567 format
+      CN: /^\d{6}$/, // China: 6 digits
     };
 
     const regex = postalRegexByCountry[formData.address.country];
     if (regex && !regex.test(formData.address.postal_code)) {
       setValidationMessage(
-        `Invalid postal code format for ${formData.address.country}`
+        `Invalid postal code format for ${formData.address.country}`,
       );
       return false;
     }
@@ -246,7 +251,7 @@ const CheckoutForm = ({
           // Update payment for both guest and logged-in users
           await updateOrderToPaid(createdOrder._id, paymentResultUpdate);
           console.log(
-            `Payment successfully completed. Status: ${paymentIntent.status}`
+            `Payment successfully completed. Status: ${paymentIntent.status}`,
           );
 
           // For debugging payment flow
@@ -256,7 +261,7 @@ const CheckoutForm = ({
         } else {
           console.warn(
             "Payment intent status not successful:",
-            paymentIntent?.status
+            paymentIntent?.status,
           );
 
           // For guest checkout, we need to be strict about payment success
@@ -264,18 +269,18 @@ const CheckoutForm = ({
             throw new Error(
               `Payment not completed. Status: ${
                 paymentIntent?.status || "unknown"
-              }`
+              }`,
             );
           } else {
             // For logged-in users, we still notify but continue
             setError(
               `Payment not completed. Status: ${
                 paymentIntent?.status || "unknown"
-              }`
+              }`,
             );
           }
         }
-      } catch (payError) {
+      } catch (payError: unknown) {
         console.error("Failed to update order payment status:", payError);
 
         // For guest checkout, stop the process if payment fails
@@ -283,9 +288,11 @@ const CheckoutForm = ({
           throw payError; // Re-throw to break out of the checkout flow
         }
         // For logged-in users, continue with checkout but show error
-        setError(
-          `Payment issue: ${payError.message || "Error processing payment"}`
-        );
+        const errorMessage =
+          payError instanceof Error
+            ? payError.message
+            : "Error processing payment";
+        setError(`Payment issue: ${errorMessage}`);
       }
 
       // Send order confirmation email
@@ -317,7 +324,7 @@ const CheckoutForm = ({
       setError(
         err instanceof Error
           ? err.message
-          : "An unexpected error occurred during checkout"
+          : "An unexpected error occurred during checkout",
       );
       setProcessing(false);
       // Reset the flag if payment fails
@@ -356,7 +363,7 @@ const CheckoutForm = ({
         // Element is getting focus
         cardElementRef.current.setAttribute(
           "aria-describedby",
-          "card-element-errors"
+          "card-element-errors",
         );
         // Add a focus class to improve visual focus indicator
         cardElementRef.current.classList.add("ring-2", "ring-blue-500");

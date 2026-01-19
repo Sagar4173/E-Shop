@@ -14,6 +14,10 @@ export interface Coupon {
   usedCount: number;
   isActive: boolean;
   applicableCategories: string[];
+  usedBy?: Array<{
+    user: string;
+    usedAt: string;
+  }>;
 }
 
 export interface CouponValidation {

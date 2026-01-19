@@ -22,7 +22,7 @@ const reviewSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const productSchema = new mongoose.Schema(
@@ -40,6 +40,11 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    originalPrice: {
+      type: Number,
+      min: 0,
+      default: null, // For discount display - null means no discount
     },
     imageUrl: {
       type: String,
@@ -74,7 +79,7 @@ const productSchema = new mongoose.Schema(
       ref: "User",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Product", productSchema);

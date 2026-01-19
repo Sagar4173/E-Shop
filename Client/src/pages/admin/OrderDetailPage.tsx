@@ -940,14 +940,14 @@ const AdminOrderDetailPage = () => {
                         {order.user.email}
                       </a>
                     </div>
-                    {order.user.phone && (
+                    {(order.user.phone || (order.user as any).phoneNumber) && (
                       <div className="flex items-center text-gray-600">
                         <FaPhone className="mr-2 text-gray-400" />
                         <a
-                          href={`tel:${order.user.phone}`}
+                          href={`tel:${order.user.phone || (order.user as any).phoneNumber}`}
                           className="hover:underline"
                         >
-                          {order.user.phone}
+                          {order.user.phone || (order.user as any).phoneNumber}
                         </a>
                       </div>
                     )}
@@ -959,7 +959,7 @@ const AdminOrderDetailPage = () => {
                   <>
                     <div>
                       <span className="font-medium">
-                        {order.shippingAddress.fullName}
+                        {order.shippingAddress.fullName || "Guest Customer"}
                       </span>
                       <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
                         Guest
@@ -990,8 +990,13 @@ const AdminOrderDetailPage = () => {
                 Address
               </h2>
               <div>
-                <p className="font-medium">{order.shippingAddress.fullName}</p>
-                <p>{order.shippingAddress.address}</p>
+                <p className="font-medium">
+                  {order.shippingAddress.fullName || "Customer"}
+                </p>
+                <p>
+                  {order.shippingAddress.address ||
+                    order.shippingAddress.street}
+                </p>
                 {order.shippingAddress.address2 && (
                   <p>{order.shippingAddress.address2}</p>
                 )}

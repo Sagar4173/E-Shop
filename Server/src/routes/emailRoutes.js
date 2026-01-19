@@ -15,10 +15,10 @@ router.post("/contact-form", emailController.sendContactFormConfirmation);
 router.post("/verification-otp", emailController.sendVerificationOtpEmail);
 router.post("/send-invoice", optionalAuth, emailController.sendInvoiceEmail);
 
-// Protected routes
+// Protected routes - allow optional auth for guest checkout order confirmations
 router.post(
   "/order-confirmation",
-  protect,
+  optionalAuth,
   emailController.sendOrderConfirmation,
 );
 router.post(

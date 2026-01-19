@@ -33,6 +33,7 @@ import FAQPage from "./pages/info/FAQPage";
 import TermsPage from "./pages/info/TermsPage";
 import OrderDetailPage from "./pages/account/OrderDetailPage";
 import TrackOrderPage from "./pages/orders/TrackOrderPage";
+import InvoicePage from "./pages/orders/InvoicePage";
 import NotFoundPage from "./pages/error/NotFoundPage";
 import LoadingPage from "./components/common/LoadingPage";
 import ErrorBoundary from "./components/error/ErrorBoundary";
@@ -63,6 +64,7 @@ const App = () => {
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/track-order" element={<TrackOrderPage />} />
+              <Route path="/invoice/:id" element={<InvoicePage />} />
 
               {/* Auth Routes */}
               <Route path="/login" element={<LoginPage />} />
