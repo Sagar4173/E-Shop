@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "echo 'Skipping build - using pre-built frontend'",
+  "buildCommand": "cd Client && npm install && npm run build",
   "devCommand": null,
   "outputDirectory": "Client/dist",
-  "installCommand": "npm install --omit=dev",
+  "installCommand": "npm install",
   "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
